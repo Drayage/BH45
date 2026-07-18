@@ -8,7 +8,7 @@ type PlayerType = "natural" | "cyborg" | "robot";
 type Speed = "slow" | "average" | "fast";
 type Hit = "single" | "double" | "triple" | "home_run";
 type ThreatHit = Hit | "walk";
-type ExpansionSet = "big_fly";
+type ExpansionSet = "rally_cap" | "magna_glove" | "robot_hitters" | "cyborg_pitchers" | "errors" | "big_fly" | "home_cookin" | "double_trouble";
 type AiDifficulty = "normal" | "hard" | "very_hard";
 type Screen = "title" | "game";
 
@@ -30,6 +30,12 @@ type Card = {
 };
 
 type Runner = { cardId: string; speed: Speed };
+type PendingPlayBonus = { hits: ThreatHit[]; requiredType?: PlayerType; label: string };
+type AbilityContext = {
+  extraInnings: boolean;
+  actingIsHome: boolean;
+  freeAgentDeck: Card[];
+};
 type RunnerMotion = {
   sequence: number;
   hit: ThreatHit | "ability";
@@ -44,6 +50,7 @@ type Side = {
   deck: Card[];
   discard: Card[];
   minors: Card[];
+  removed: Card[];
   onDeck: Card | null;
   hand: Card[];
   played: Card[];
@@ -51,6 +58,8 @@ type Side = {
   pending: ThreatHit[];
   pendingSpeed: Speed | null;
   pendingHitAndRun: boolean;
+  nextBonus: PendingPlayBonus | null;
+  remainingBonuses: ThreatHit[];
   score: number;
   revenue: number;
 };
@@ -143,22 +152,31 @@ const hitLabel: Record<ThreatHit, string> = {
   home_run: "홈런",
   walk: "볼넷",
 };
-const expansionLabel: Record<ExpansionSet, string> = { big_fly: "Big Fly" };
+const expansionLabel: Record<ExpansionSet, string> = {
+  rally_cap: "Rally Cap",
+  magna_glove: "Naturals & Magna Glove",
+  robot_hitters: "Robot Hitters",
+  cyborg_pitchers: "Cyborg Pitchers",
+  errors: "Errors!",
+  big_fly: "Big Fly",
+  home_cookin: "Home Cookin'",
+  double_trouble: "Double Trouble",
+};
 const aiDifficultyConfig: Record<AiDifficulty, { label: string; count: number; detail: string }> = {
   normal: { label: "보통", count: 0, detail: "CPU도 스타터 15장으로 시작" },
   hard: { label: "어려움", count: 3, detail: "CPU 스타터 3장을 무작위 FA로 교체" },
   very_hard: { label: "매우 어려움", count: 5, detail: "CPU 스타터 5장을 무작위 FA로 교체" },
 };
 const expansionCatalog = [
-  { id: "big_fly" as ExpansionSet, code: "BF", name: "Big Fly", count: 15, ready: true },
   { code: "CO", name: "Coaches", count: 15, ready: false },
-  { code: "RC", name: "Rally Cap", count: 15, ready: false },
-  { code: "NM", name: "Naturals & Magna Glove", count: 10, ready: false },
-  { code: "RH", name: "Robot Hitters", count: 10, ready: false },
-  { code: "CP", name: "Cyborg Pitchers", count: 10, ready: false },
-  { code: "ER", name: "Errors!", count: 15, ready: false },
-  { code: "HC", name: "Home Cookin'", count: 15, ready: false },
-  { code: "DT", name: "Double Trouble", count: 15, ready: false },
+  { id: "rally_cap" as ExpansionSet, code: "RC", name: "Rally Cap", count: 15, ready: true },
+  { id: "magna_glove" as ExpansionSet, code: "NM", name: "Naturals & Magna Glove", count: 10, ready: true },
+  { id: "robot_hitters" as ExpansionSet, code: "RH", name: "Robot Hitters", count: 10, ready: true },
+  { id: "cyborg_pitchers" as ExpansionSet, code: "CP", name: "Cyborg Pitchers", count: 10, ready: true },
+  { id: "errors" as ExpansionSet, code: "ER", name: "Errors!", count: 15, ready: true },
+  { id: "big_fly" as ExpansionSet, code: "BF", name: "Big Fly", count: 15, ready: true },
+  { id: "home_cookin" as ExpansionSet, code: "HC", name: "Home Cookin'", count: 15, ready: true },
+  { id: "double_trouble" as ExpansionSet, code: "DT", name: "Double Trouble", count: 15, ready: true },
 ] as const;
 
 function shuffle<T>(input: T[]) {
@@ -184,6 +202,7 @@ function makeSide(team: string): Side {
     deck: deck.slice(6),
     discard: [],
     minors: [],
+    removed: [],
     onDeck: null,
     hand: deck.slice(0, 6),
     played: [],
@@ -191,6 +210,8 @@ function makeSide(team: string): Side {
     pending: [],
     pendingSpeed: null,
     pendingHitAndRun: false,
+    nextBonus: null,
+    remainingBonuses: [],
     score: 0,
     revenue: 0,
   };
@@ -259,11 +280,14 @@ function cloneSide(side: Side): Side {
     deck: [...side.deck],
     discard: [...side.discard],
     minors: [...side.minors],
+    removed: [...side.removed],
     onDeck: side.onDeck,
     hand: [...side.hand],
     played: [...side.played],
     bases: [...side.bases],
     pending: [...side.pending],
+    nextBonus: side.nextBonus ? { ...side.nextBonus, hits: [...side.nextBonus.hits] } : null,
+    remainingBonuses: [...side.remainingBonuses],
   };
 }
 
@@ -411,34 +435,185 @@ function parseGrantedHit(text: string): ThreatHit | null {
   return null;
 }
 
+function parseGrantedHits(text: string): ThreatHit[] {
+  const lower = text.toLowerCase();
+  if (lower.includes("2 walks")) return ["walk", "walk"];
+  if (lower.includes("2 singles") || /single,\s*(?:and\s*)?single/.test(lower)) return ["single", "single"];
+  const hit = parseGrantedHit(lower);
+  return hit ? [hit] : [];
+}
+
+function abilityClause(text: string, keyword: string) {
+  return text.split(";").map((clause) => clause.trim()).find((clause) => clause.includes(keyword)) ?? "";
+}
+
+function hasGloveAction(card: Card | undefined) {
+  return Boolean(card?.abilityText?.toLowerCase().split(";").some((clause) => {
+    const trimmed = clause.trim();
+    return trimmed.startsWith("glove:") || trimmed.startsWith("magna glove:");
+  }));
+}
+
+function advanceAllRunnersOne(side: Side) {
+  const motions: RunnerMotion[] = [];
+  const next = [...side.bases];
+  for (let base = 2; base >= 0; base -= 1) {
+    const runner = next[base];
+    if (!runner) continue;
+    next[base] = null;
+    if (base === 2) {
+      side.score += 1;
+      motions.push({ ...runner, sequence: motions.length, hit: "ability", from: 3, to: "score" });
+    } else {
+      next[base + 1] = runner;
+      motions.push({ ...runner, sequence: motions.length, hit: "ability", from: (base + 1) as 1 | 2, to: (base + 2) as 2 | 3 });
+    }
+  }
+  side.bases = next;
+  return motions;
+}
+
+function advanceLeadRunner(side: Side) {
+  const base = side.bases.findLastIndex(Boolean);
+  if (base < 0) return [] as RunnerMotion[];
+  const runner = side.bases[base]!;
+  side.bases[base] = null;
+  if (base === 2) {
+    side.score += 1;
+    return [{ ...runner, sequence: 0, hit: "ability" as const, from: 3 as const, to: "score" as const }];
+  }
+  side.bases[base + 1] = runner;
+  return [{ ...runner, sequence: 0, hit: "ability" as const, from: (base + 1) as 1 | 2, to: (base + 2) as 2 | 3 }];
+}
+
+function drawCheck(context: AbilityContext) {
+  const checked = context.freeAgentDeck.shift();
+  if (checked) context.freeAgentDeck.push(checked);
+  return checked;
+}
+
+function replaceWithMinor(side: Side, card: Card) {
+  const minor: Card = {
+    id: `MINOR-${card.id}`,
+    set: "base",
+    category: "starter",
+    name: "Minor Leaguer",
+    team: side.team,
+    tier: "rookie",
+    type: "natural",
+    cost: null,
+    revenue: 0,
+    speed: "slow",
+    pinchHitter: false,
+    abilityText: null,
+    abilityTextKo: "마이너리거 · 능력 없음",
+    hits: [],
+  };
+  const index = side.played.findIndex((played) => played.id === card.id);
+  if (index >= 0) side.played[index] = minor;
+  side.removed.push(card);
+}
+
 function applyAbility(
   card: Card,
   acting: Side,
   opposing: Side,
   opposingLast: Card | undefined,
   playIndex: number,
+  context: AbilityContext,
 ) {
   const text = card.abilityText?.toLowerCase() ?? "";
-  const events = applyDefensiveAbility(card, acting, opposing, opposingLast);
+  const events = applyDefensiveAbility(card, acting, opposing, opposingLast, context);
   const runnerMotions: RunnerMotion[] = [];
   if (!text) return { events, runnerMotions };
 
-  const granted = parseGrantedHit(text);
   const onScoringBase = Boolean(acting.bases[1] || acting.bases[2]);
   const basesLoaded = acting.bases.every(Boolean);
-  if (text.includes("quick eye") && opposingLast?.type === "cyborg" && granted) {
-    acting.pending.push(granted);
-    if (text.includes("2 walks")) acting.pending.push("walk");
-    events.push(`퀵 아이가 ${hitLabel[granted]}를 추가했습니다.`);
-  } else if (text.includes("clutch") && (text.includes("all 3 bases") ? basesLoaded : onScoringBase) && granted) {
-    acting.pending.push(granted);
-    events.push(`클러치가 ${hitLabel[granted]}를 추가했습니다.`);
-  } else if (text.includes("leadoff") && playIndex === 0 && granted) {
-    acting.pending.push(granted);
-    events.push(`리드오프가 ${hitLabel[granted]}를 추가했습니다.`);
-  } else if (text.includes("rally") && acting.score < opposing.score && granted) {
-    acting.pending.push(granted);
-    events.push(`랠리가 ${hitLabel[granted]}를 추가했습니다.`);
+  const quickEye = abilityClause(text, "quick eye");
+  if (quickEye && opposingLast?.type === "cyborg") {
+    const granted = parseGrantedHits(quickEye);
+    acting.pending.push(...granted);
+    if (quickEye.includes("wild pitch")) {
+      const moved = advanceAllRunnersOne(acting);
+      runnerMotions.push(...moved);
+      if (moved.length) events.push(`폭투로 주자 ${moved.length}명이 1베이스 진루했습니다.`);
+    }
+    if (quickEye.includes("out of game") && opposingLast) {
+      const check = drawCheck(context);
+      events.push(`로봇 체크 ${check?.id ?? "실패"} · ${check?.type === "robot" ? "성공" : "실패"}`);
+      if (check?.type === "robot") {
+        replaceWithMinor(opposing, opposingLast);
+        events.push(`${opposingLast.id}를 마이너리거로 교체했습니다.`);
+      }
+    }
+    if (granted.length) events.push(`퀵 아이가 ${granted.map((hit) => hitLabel[hit]).join(" + ")}를 추가했습니다.`);
+  }
+
+  const clutch = abilityClause(text, "clutch");
+  if (clutch && (clutch.includes("all 3 bases") ? basesLoaded : onScoringBase)) {
+    const granted = parseGrantedHits(clutch);
+    acting.pending.push(...granted);
+    if (granted.length) events.push(`클러치가 ${granted.map((hit) => hitLabel[hit]).join(" + ")}를 추가했습니다.`);
+  }
+
+  const leadoff = abilityClause(text, "leadoff");
+  if (leadoff && playIndex === 0) {
+    const granted = parseGrantedHits(leadoff);
+    acting.pending.push(...granted);
+    if (granted.length) events.push(`리드오프가 ${granted.map((hit) => hitLabel[hit]).join(" + ")}를 추가했습니다.`);
+  }
+
+  const rally = abilityClause(text, "rally");
+  if (rally && acting.score < opposing.score) {
+    const granted = parseGrantedHits(rally);
+    if (rally.includes("all your remaining players")) {
+      acting.remainingBonuses = [...granted];
+      events.push(`랠리 캡이 남은 모든 선수에게 ${granted.map((hit) => hitLabel[hit]).join(" + ")}를 예약했습니다.`);
+    } else if (rally.includes("your next player")) {
+      acting.nextBonus = { hits: granted, label: "랠리 캡" };
+      events.push(`랠리 캡이 다음 선수에게 ${granted.map((hit) => hitLabel[hit]).join(" + ")}를 예약했습니다.`);
+    } else {
+      acting.pending.push(...granted);
+      if (granted.length) events.push(`랠리가 ${granted.map((hit) => hitLabel[hit]).join(" + ")}를 추가했습니다.`);
+    }
+  }
+
+  const teamwork = abilityClause(text, "teamwork");
+  if (teamwork) {
+    if (teamwork.includes("your next player")) {
+      const granted = parseGrantedHits(teamwork);
+      acting.nextBonus = { hits: granted, requiredType: "natural", label: "팀워크" };
+      events.push(`팀워크가 다음 내추럴 선수에게 ${granted.map((hit) => hitLabel[hit]).join(" + ")}를 예약했습니다.`);
+    } else {
+      const naturalCount = acting.played.filter((played) => played.type === "natural").length;
+      const requirement = teamwork.includes("3 naturals") ? 3 : teamwork.includes("2 naturals") ? 2 : 0;
+      const granted = teamwork.includes("for each natural")
+        ? Array.from({ length: naturalCount }, () => "single" as ThreatHit)
+        : naturalCount >= requirement ? parseGrantedHits(teamwork) : [];
+      acting.pending.push(...granted);
+      if (granted.length) events.push(`팀워크가 내추럴 ${naturalCount}명으로 ${granted.map((hit) => hitLabel[hit]).join(" + ")}를 추가했습니다.`);
+    }
+  }
+
+  const hero = abilityClause(text, "hero");
+  if (hero && context.extraInnings) {
+    const granted = parseGrantedHits(hero);
+    acting.pending.push(...granted);
+    if (granted.length) events.push(`히어로가 연장전에서 ${granted.map((hit) => hitLabel[hit]).join(" + ")}를 추가했습니다.`);
+  }
+
+  const homeCookin = abilityClause(text, "home cookin");
+  if (homeCookin && context.actingIsHome) {
+    const granted = parseGrantedHits(homeCookin);
+    acting.pending.push(...granted);
+    if (granted.length) events.push(`홈 쿠킹이 ${granted.map((hit) => hitLabel[hit]).join(" + ")}를 추가했습니다.`);
+  }
+
+  const robotAi = abilityClause(text, "robot ai");
+  if (robotAi && hasGloveAction(opposingLast)) {
+    const granted = parseGrantedHits(robotAi);
+    acting.pending.push(...granted);
+    if (granted.length) events.push(`로봇 AI가 글러브를 읽고 ${granted.map((hit) => hitLabel[hit]).join(" + ")}를 추가했습니다.`);
   }
 
   if (text.includes("stolen base")) {
@@ -458,6 +633,32 @@ function applyAbility(
     events.push(`대주자가 기존 주자 ${changed}명을 빠른 주자로 교체했습니다.`);
   }
 
+  if (text.includes("sacrifice bunt")) {
+    const moved = advanceLeadRunner(acting);
+    runnerMotions.push(...moved);
+    if (moved.length) events.push("희생 번트로 가장 앞선 주자가 1베이스 진루했습니다.");
+  }
+
+  if (text.includes("gambler")) {
+    const drawCount = text.includes("top 2") ? 2 : 1;
+    const revealed = context.freeAgentDeck.splice(0, drawCount);
+    const selected = [...revealed].sort((a, b) => cardValue(b) - cardValue(a))[0];
+    if (selected) {
+      context.freeAgentDeck.push(...revealed.filter((revealedCard) => revealedCard.id !== selected.id));
+      acting.pending.push(...selected.hits);
+      events.push(`갬블러가 ${revealed.map((item) => item.id).join(", ")}를 공개하고 ${selected.id}의 안타 칸을 사용한 뒤 그 카드를 게임에서 제거했습니다.`);
+    }
+  }
+
+  if (text.includes("cloning")) {
+    const copied = [...acting.played].reverse().find((played) => played.abilityText && !played.abilityText.toLowerCase().includes("cloning"));
+    if (copied) {
+      const cloned = applyAbility(copied, acting, opposing, opposingLast, playIndex, context);
+      events.push(`클로닝으로 ${copied.id}의 즉시 능력을 복제했습니다.`, ...cloned.events);
+      runnerMotions.push(...cloned.runnerMotions);
+    }
+  }
+
   if (text.includes("hit & run") && card.hits.length) {
     acting.pendingHitAndRun = true;
     events.push("히트 앤드 런 준비 · 이 카드의 안타마다 기존 주자가 1베이스 더 진루합니다.");
@@ -466,17 +667,38 @@ function applyAbility(
   return { events, runnerMotions };
 }
 
-function applyDefensiveAbility(card: Card, acting: Side, opposing: Side, opposingLast: Card | undefined) {
+function applyDefensiveAbility(card: Card, acting: Side, opposing: Side, opposingLast: Card | undefined, context: AbilityContext) {
   const text = card.abilityText?.toLowerCase() ?? "";
   const events: string[] = [];
   if (!text) return events;
 
-  if (text.includes("magna glove") && opposing.pending.length) {
-    const removed = opposing.pending.splice(0, 2).length;
-    events.push(`마그나 글러브로 위협 안타 ${removed}개를 지웠습니다.`);
-  } else if (text.includes("glove") && opposing.pending.length) {
-    opposing.pending.splice(0, 1);
-    events.push("글러브로 위협 안타 1개를 지웠습니다.");
+  const glove = text.split(";").map((clause) => clause.trim()).find((clause) => clause.startsWith("glove:") || clause.startsWith("magna glove:")) ?? "";
+  if (glove && opposing.pending.length && (!glove.includes("extra innings") || context.extraInnings)) {
+    let checkPassed = true;
+    if (glove.includes("robot check")) {
+      const check = drawCheck(context);
+      const success = check?.type === "robot";
+      checkPassed = checkPassed && success;
+      events.push(`로봇 체크 ${check?.id ?? "실패"} · ${success ? "성공" : "실패"}`);
+    }
+    if (opposingLast?.abilityText?.toLowerCase().includes("error")) {
+      const check = drawCheck(context);
+      const success = check?.type === "natural";
+      checkPassed = checkPassed && success;
+      events.push(`에러 대응 내추럴 체크 ${check?.id ?? "실패"} · ${success ? "성공" : "실패"}`);
+    }
+    if (checkPassed) {
+      let count = glove.includes("magna glove") ? 2 : 1;
+      if (glove.includes("1st glove") && opposing.pending[0] === "home_run") count = 2;
+      const affected = Math.min(count, opposing.pending.length);
+      if (opposingLast?.abilityText?.toLowerCase().includes("contact")) {
+        opposing.pending = opposing.pending.map((hit, index) => index < affected ? "single" : hit);
+        events.push(`컨택으로 글러브 대상 위협 ${affected}개가 1루타로 바뀌었습니다.`);
+      } else {
+        opposing.pending.splice(0, affected);
+        events.push(`${glove.includes("magna glove") ? "마그나 글러브" : "글러브"}로 위협 안타 ${affected}개를 지웠습니다.`);
+      }
+    }
   }
 
   if (text.includes("pick off")) {
@@ -495,21 +717,49 @@ function applyDefensiveAbility(card: Card, acting: Side, opposing: Side, opposin
     opposing.pending = [];
     events.push("커브가 로봇의 위협 안타를 모두 취소했습니다.");
   }
-  if (text.includes("spit ball") && opposingLast?.type === "cyborg" && opposing.pending.length) {
+  if ((text.includes("spit ball") || text.includes("spitball")) && opposingLast?.type === "cyborg" && opposing.pending.length) {
     opposing.pending = [];
     events.push("스핏볼이 사이보그의 위협 안타를 모두 취소했습니다.");
   }
-  if (text.includes("sinkerball") && opposing.pending.length && Boolean(opposing.bases[1] || opposing.bases[2])) {
+  if (text.includes("sinkerball") && opposing.pending.length && Boolean(opposing.bases[1] || opposing.bases[2]) && (!text.includes("home team") || context.actingIsHome)) {
     opposing.pending = [];
     events.push("싱커볼이 득점권 주자가 있는 상대의 위협 안타를 모두 취소했습니다.");
   }
-  if (text.includes("knuckle ball") && opposing.pending.some((hit) => hit !== "walk")) {
+  if ((text.includes("knuckle ball") || text.includes("knuckleball")) && opposing.pending.some((hit) => hit !== "walk")) {
     opposing.pending = reduceHits(opposing.pending);
     events.push("너클볼이 모든 위협 안타를 1베이스 줄였습니다.");
   }
-  if (text.startsWith("walk:") && opposing.pending.some((hit) => hit !== "walk")) {
+  if (text.split(";").some((clause) => clause.trim().startsWith("walk:")) && opposing.pending.some((hit) => hit !== "walk")) {
     opposing.pending = opposing.pending.map(() => "walk");
     events.push("위협 안타가 볼넷으로 바뀌었습니다.");
+  }
+
+  const cyborgsPlayed = acting.played.filter((played) => played.type === "cyborg").length;
+  if (text.includes("slider") && opposing.pending.length && cyborgsPlayed >= 2 && (!text.includes("home team") || context.actingIsHome)) {
+    opposing.pending = [];
+    events.push(`슬라이더가 앞서 낸 사이보그 ${cyborgsPlayed}명의 도움으로 모든 위협을 취소했습니다.`);
+  }
+  if (text.includes("screwball") && opposing.pending.length && context.extraInnings) {
+    opposing.pending = [];
+    events.push("스크루볼이 연장전의 모든 위협 안타를 취소했습니다.");
+  }
+  if (text.includes("closer") && opposing.pending.length && acting.score > opposing.score) {
+    opposing.pending = [];
+    events.push("클로저가 앞선 상황에서 모든 위협 안타를 취소했습니다.");
+  }
+  if (text.includes("hold") && opposing.pending.length && acting.score < opposing.score) {
+    opposing.pending = [];
+    events.push("홀드가 뒤진 상황에서 모든 위협 안타를 취소했습니다.");
+  }
+
+  if (text.includes("bean ball") && opposingLast) {
+    const check = drawCheck(context);
+    const success = check?.type === opposingLast.type;
+    events.push(`빈볼 타입 체크 ${check?.id ?? "실패"} · ${success ? "성공" : "실패"}`);
+    if (success) {
+      replaceWithMinor(opposing, opposingLast);
+      events.push(`${opposingLast.id}를 마이너리거로 교체했습니다.`);
+    }
   }
 
   return events;
@@ -527,16 +777,53 @@ function settlePending(side: Side, source: Card | undefined) {
   return { hits, runnerMotions };
 }
 
-function playOne(card: Card, acting: Side, opposing: Side) {
+function playOne(card: Card, acting: Side, opposing: Side, context: AbilityContext) {
+  const sourceCard = card;
+  const sourceText = sourceCard.abilityText?.toLowerCase() ?? "";
+  let replacementDetail: string | null = null;
+  if (sourceText.startsWith("replace:")) {
+    const replacement = context.freeAgentDeck.shift();
+    if (replacement) {
+      card = replacement;
+      acting.removed.push(sourceCard);
+      replacementDetail = `리플레이스가 ${sourceCard.id}를 제외하고 FA 덱 맨 위 ${card.id}를 투입했습니다.`;
+    }
+  } else if (sourceText.includes("rally relief") && acting.score < opposing.score) {
+    const index = context.freeAgentDeck.findIndex((candidate) => candidate.type === "cyborg");
+    if (index >= 0) {
+      const [replacement] = context.freeAgentDeck.splice(index, 1);
+      card = replacement;
+      acting.removed.push(sourceCard);
+      replacementDetail = `랠리 릴리프가 ${sourceCard.id} 대신 첫 사이보그 ${card.id}를 투입했습니다.`;
+    }
+  }
+
   const opposingLast = opposing.played.at(-1);
   const revealFrame: MoveFrame = { acting: visualSide(acting), opposing: visualSide(opposing) };
   acting.pendingSpeed = card.speed;
-  const ability = applyAbility(card, acting, opposing, opposingLast, acting.played.length);
+  const bonusEvents: string[] = [];
+  if (acting.remainingBonuses.length) {
+    acting.pending.push(...acting.remainingBonuses);
+    bonusEvents.push(`랠리 캡 지속 보너스 ${acting.remainingBonuses.map((hit) => hitLabel[hit]).join(" + ")} 적용.`);
+  }
+  if (acting.nextBonus) {
+    const bonus = acting.nextBonus;
+    acting.nextBonus = null;
+    if (!bonus.requiredType || bonus.requiredType === card.type) {
+      acting.pending.push(...bonus.hits);
+      bonusEvents.push(`${bonus.label} 예약 보너스 ${bonus.hits.map((hit) => hitLabel[hit]).join(" + ")} 적용.`);
+    } else {
+      bonusEvents.push(`${bonus.label} 예약 보너스는 다음 선수가 ${typeLabel[bonus.requiredType]}이 아니어서 소멸했습니다.`);
+    }
+  }
+  const ability = applyAbility(card, acting, opposing, opposingLast, acting.played.length, context);
+  if (replacementDetail) ability.events.unshift(replacementDetail);
+  ability.events.unshift(...bonusEvents);
   const abilityFrame: MoveFrame = { acting: visualSide(acting), opposing: visualSide(opposing) };
   const settlement = settlePending(opposing, opposingLast);
   const settled = settlement.hits;
   const settleFrame: MoveFrame = { acting: visualSide(acting), opposing: visualSide(opposing) };
-  acting.hand = acting.hand.filter((item) => item.id !== card.id);
+  acting.hand = acting.hand.filter((item) => item.id !== sourceCard.id && item.id !== card.id);
   acting.played.push(card);
   acting.revenue += card.revenue;
   acting.pending.push(...card.hits);
@@ -544,6 +831,7 @@ function playOne(card: Card, acting: Side, opposing: Side) {
   if (acting.pending.length) acting.pendingSpeed = card.speed;
   const threatFrame: MoveFrame = { acting: visualSide(acting), opposing: visualSide(opposing) };
   return {
+    playedCard: card,
     events: ability.events,
     abilityMotions: ability.runnerMotions,
     settled,
@@ -556,8 +844,8 @@ function playOne(card: Card, acting: Side, opposing: Side) {
 function chooseCpuCard(side: Side, opponent: Side) {
   const pendingCount = opponent.pending.length;
   const ranked = [...side.hand].sort((a, b) => {
-    const aDefense = a.abilityText && /Glove|Fastball|Curve|Pick Off|Double Play|Knuckle|Sinkerball/.test(a.abilityText) ? 1 : 0;
-    const bDefense = b.abilityText && /Glove|Fastball|Curve|Pick Off|Double Play|Knuckle|Sinkerball/.test(b.abilityText) ? 1 : 0;
+    const aDefense = a.abilityText && /Glove|Fastball|Curve|Pick Off|Double Play|Knuckle|Sinkerball|Spit Ball|Slider|Screwball|Closer|Hold|Walk/.test(a.abilityText) ? 1 : 0;
+    const bDefense = b.abilityText && /Glove|Fastball|Curve|Pick Off|Double Play|Knuckle|Sinkerball|Spit Ball|Slider|Screwball|Closer|Hold|Walk/.test(b.abilityText) ? 1 : 0;
     if (pendingCount) return bDefense - aDefense || b.revenue - a.revenue;
     return b.hits.length - a.hits.length || b.revenue - a.revenue;
   });
@@ -585,6 +873,8 @@ function drawNextLineup(side: Side) {
   side.pending = [];
   side.pendingSpeed = null;
   side.pendingHitAndRun = false;
+  side.nextBonus = null;
+  side.remainingBonuses = [];
   side.score = 0;
   side.revenue = 0;
 }
@@ -815,23 +1105,36 @@ function ResolutionConsole({ game, activeIndex, running }: { game: GameState; ac
   );
 }
 
-function abilityIsActive(card: Card, acting: Side, opposing: Side) {
+function abilityIsActive(card: Card, acting: Side, opposing: Side, extraInnings = false, actingIsHome = false) {
   const text = card.abilityText?.toLowerCase() ?? "";
   const opposingLast = opposing.played.at(-1);
   if (!text) return false;
-  if (text.includes("glove")) return opposing.pending.length > 0;
+  if (hasGloveAction(card)) return opposing.pending.length > 0;
   if (text.includes("pick off")) return opposing.bases.some(Boolean);
   if (text.includes("double play")) return opposing.bases.some((runner) => runner && runner.speed !== "fast");
   if (text.includes("fastball")) return opposing.pending.length > 0 && opposingLast?.type === "natural";
   if (text.includes("curve")) return opposing.pending.length > 0 && opposingLast?.type === "robot";
-  if (text.includes("spit ball")) return opposing.pending.length > 0 && opposingLast?.type === "cyborg";
-  if (text.includes("sinkerball")) return opposing.pending.length > 0 && Boolean(opposing.bases[1] || opposing.bases[2]);
-  if (text.includes("knuckle ball")) return opposing.pending.some((hit) => hit !== "walk");
-  if (text.startsWith("walk:")) return opposing.pending.some((hit) => hit !== "walk");
+  if (text.includes("spit ball") || text.includes("spitball")) return opposing.pending.length > 0 && opposingLast?.type === "cyborg";
+  if (text.includes("sinkerball")) return opposing.pending.length > 0 && Boolean(opposing.bases[1] || opposing.bases[2]) && (!text.includes("home team") || actingIsHome);
+  if (text.includes("knuckle ball") || text.includes("knuckleball")) return opposing.pending.some((hit) => hit !== "walk");
+  if (text.split(";").some((clause) => clause.trim().startsWith("walk:"))) return opposing.pending.some((hit) => hit !== "walk");
+  if (text.includes("slider")) return opposing.pending.length > 0 && acting.played.filter((played) => played.type === "cyborg").length >= 2 && (!text.includes("home team") || actingIsHome);
+  if (text.includes("screwball")) return opposing.pending.length > 0 && extraInnings;
+  if (text.includes("closer")) return opposing.pending.length > 0 && acting.score > opposing.score;
+  if (text.includes("hold")) return opposing.pending.length > 0 && acting.score < opposing.score;
+  if (text.includes("bean ball")) return Boolean(opposingLast);
   if (text.includes("quick eye")) return opposingLast?.type === "cyborg";
   if (text.includes("clutch")) return text.includes("all 3 bases") ? acting.bases.every(Boolean) : Boolean(acting.bases[1] || acting.bases[2]);
   if (text.includes("leadoff")) return acting.played.length === 0;
   if (text.includes("rally")) return acting.score < opposing.score;
+  if (text.includes("teamwork")) return true;
+  if (text.includes("hero")) return extraInnings;
+  if (text.includes("home cookin")) return actingIsHome;
+  if (text.includes("robot ai")) return hasGloveAction(opposingLast);
+  if (text.includes("sacrifice bunt")) return acting.bases.some(Boolean);
+  if (text.includes("gambler") || text.includes("replace:")) return true;
+  if (text.includes("cloning")) return acting.played.some((played) => played.abilityText && !played.abilityText.toLowerCase().includes("cloning"));
+  if (text.includes("contact") || text.includes("error")) return true;
   if (text.includes("stolen base")) {
     const preview = cloneSide(acting);
     return advanceStealRunners(preview).motions.length > 0;
@@ -1052,11 +1355,11 @@ function TitleScreen({
             {expansionCatalog.map((set) => set.ready ? (
               <label className={`set-option ${enabledExpansions.includes(set.id) ? "is-enabled" : ""}`} key={set.code}>
                 <input type="checkbox" checked={enabledExpansions.includes(set.id)} onChange={(event) => onExpansionChange(set.id, event.target.checked)} />
-                <span className="set-code">{set.code}</span><div><b>{set.name}</b><small>FA {set.count}장 · 신규 능력 3종</small></div><em>{enabledExpansions.includes(set.id) ? "사용" : "제외"}</em>
+                <span className="set-code">{set.code}</span><div><b>{set.name}</b><small>FA {set.count}장 · 능력 판정·연출 구현</small></div><em>{enabledExpansions.includes(set.id) ? "사용" : "제외"}</em>
               </label>
             ) : (
               <article className="set-option is-upcoming" key={set.code}>
-                <span className="set-code">{set.code}</span><div><b>{set.name}</b><small>{set.count}장 · 카드 입력 준비 중</small></div><em>예정</em>
+                <span className="set-code">{set.code}</span><div><b>{set.name}</b><small>{set.count}장 · 코치 드래프트·지속효과 준비 중</small></div><em>예정</em>
               </article>
             ))}
           </div>
@@ -1307,14 +1610,23 @@ export function GamePrototype() {
         pinchHitDetail = `${selectedCard.id}를 더그아웃으로 보내고 ${fromOnDeck ? "온덱" : "라인업 맨 위"} ${replacement.id}를 투입했습니다.`;
       }
 
-      const playerMove = playOne(playerCard, player, cpu);
+      const freeAgentDeck = [...current.freeAgentDeck];
+      const playerMove = playOne(playerCard, player, cpu, {
+        extraInnings: current.round > 6,
+        actingIsHome: false,
+        freeAgentDeck,
+      });
       const cpuCard = chooseCpuCard(cpu, player);
-      const cpuMove = playOne(cpuCard, cpu, player);
+      const cpuMove = playOne(cpuCard, cpu, player, {
+        extraInnings: current.round > 6,
+        actingIsHome: true,
+        freeAgentDeck,
+      });
       const nextRound = current.round + 1;
       const finished = player.hand.length === 0;
       const resolution = [
-        ...moveEvents("player", playerCard, playerMove),
-        ...moveEvents("cpu", cpuCard, cpuMove),
+        ...moveEvents("player", playerMove.playedCard, playerMove),
+        ...moveEvents("cpu", cpuMove.playedCard, cpuMove),
       ];
       if (pinchHitDetail) {
         resolution[0] = { ...resolution[0], title: "PH 대타 투입", detail: pinchHitDetail };
@@ -1335,6 +1647,7 @@ export function GamePrototype() {
           ...current,
           player,
           cpu,
+          freeAgentDeck,
           round: current.round,
           phase: "visitor_save",
           selectedId: null,
@@ -1348,6 +1661,7 @@ export function GamePrototype() {
         ...current,
         player,
         cpu,
+        freeAgentDeck,
         round: finished ? 6 : nextRound,
         phase: "playing",
         selectedId: null,
@@ -1365,6 +1679,7 @@ export function GamePrototype() {
       if (current.phase !== "visitor_save") return current;
       const player = cloneSide(current.player);
       const cpu = cloneSide(current.cpu);
+      const freeAgentDeck = [...current.freeAgentDeck];
       const resolution: ResolutionEvent[] = [];
       const log = [...current.log];
       let saveCard: Card | null = null;
@@ -1386,7 +1701,11 @@ export function GamePrototype() {
       }
 
       if (saveCard) {
-        const saveEvents = applyDefensiveAbility(saveCard, player, cpu, cpu.played.at(-1));
+        const saveEvents = applyDefensiveAbility(saveCard, player, cpu, cpu.played.at(-1), {
+          extraInnings: current.round > 6,
+          actingIsHome: false,
+          freeAgentDeck,
+        });
         player.discard.push(saveCard);
         resolution.push({
           kind: "save",
@@ -1424,7 +1743,7 @@ export function GamePrototype() {
       });
       if (finalSettlement.hits.length) log.push(`경기 종료 · 상대 마지막 ${finalSettlement.hits.map((hit) => hitLabel[hit]).join(", ")} 확정`);
       log.push(`FINAL ${teamCode[player.team]} ${player.score} : ${cpu.score} ${teamCode[cpu.team]}`);
-      return finishMiniGame(current, player, cpu, resolution, log);
+      return finishMiniGame({ ...current, freeAgentDeck }, player, cpu, resolution, log);
     });
   }
 
@@ -1830,7 +2149,7 @@ export function GamePrototype() {
                   card={card}
                   selected={game.selectedId === card.id}
                   disabled={playbackRunning}
-                  abilityActive={abilityIsActive(card, game.player, game.cpu)}
+                  abilityActive={abilityIsActive(card, game.player, game.cpu, game.round > 6, false)}
                   onClick={() => playRound(card.id)}
                 />
                 {card.pinchHitter && (

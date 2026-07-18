@@ -26,6 +26,9 @@ test("server-renders the Korean season title and settings", async () => {
   assert.match(html, /리그 설정/);
   assert.match(html, /스타터 덱/);
   assert.match(html, /Big Fly/);
+  assert.match(html, /Rally Cap/);
+  assert.match(html, /Errors!/);
+  assert.match(html, /Double Trouble/);
   assert.match(html, /AI 난이도/);
   assert.match(html, /어려움/);
   assert.match(html, /매우 어려움/);
@@ -55,8 +58,25 @@ test("starter preview assets are removed and card data stays separated", async (
   assert.ok(starters.every((card) => card.id.startsWith("ST-")));
   assert.ok(freeAgents.every((card) => card.id.startsWith("FA-")));
   assert.ok(cards.every((card) => !card.abilityText || card.abilityTextKo));
-  assert.equal(expansions.length, 15);
-  assert.ok(expansions.every((card) => card.set === "big_fly" && card.id.startsWith("BF-") && card.abilityTextKo));
+  assert.equal(expansions.length, 105);
+  const expectedExpansionCounts = {
+    rally_cap: 15,
+    magna_glove: 10,
+    robot_hitters: 10,
+    cyborg_pitchers: 10,
+    errors: 15,
+    big_fly: 15,
+    home_cookin: 15,
+    double_trouble: 15,
+  };
+  for (const [set, count] of Object.entries(expectedExpansionCounts)) {
+    assert.equal(expansions.filter((card) => card.set === set).length, count);
+  }
+  assert.equal(new Set(expansions.map((card) => card.id)).size, expansions.length);
+  assert.ok(expansions.every((card) => !card.abilityText || card.abilityTextKo));
+  assert.match(prototype, /function drawCheck\(context: AbilityContext\)/);
+  assert.match(prototype, /function replaceWithMinor\(side: Side, card: Card\)/);
+  assert.match(prototype, /text\.includes\("cloning"\)/);
   assert.match(prototype, /hard: \{ label: "어려움", count: 3/);
   assert.match(prototype, /very_hard: \{ label: "매우 어려움", count: 5/);
   assert.match(prototype, /const recruits = freeAgents\.slice\(0, count\)/);
