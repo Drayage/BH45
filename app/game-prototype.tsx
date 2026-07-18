@@ -2,14 +2,18 @@
 
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
 import cardData from "@/data/base-cards.json";
+import expansionCardData from "@/data/expansion-cards.json";
 
 type PlayerType = "natural" | "cyborg" | "robot";
 type Speed = "slow" | "average" | "fast";
 type Hit = "single" | "double" | "triple" | "home_run";
 type ThreatHit = Hit | "walk";
+type ExpansionSet = "big_fly";
+type Screen = "title" | "game";
 
 type Card = {
   id: string;
+  set: "base" | ExpansionSet;
   category: "starter" | "free_agent";
   name: string;
   team: string;
@@ -45,6 +49,7 @@ type Side = {
   bases: Array<Runner | null>;
   pending: ThreatHit[];
   pendingSpeed: Speed | null;
+  pendingHitAndRun: boolean;
   score: number;
   revenue: number;
 };
@@ -107,9 +112,12 @@ type GameState = {
   resolutionKey: number;
   lastResolution: ResolutionEvent[];
   log: string[];
+  enabledExpansions: ExpansionSet[];
 };
 
-const cards = cardData as Card[];
+const baseCards = cardData as Card[];
+const expansionCards = expansionCardData as Card[];
+const cards = [...baseCards, ...expansionCards];
 const teams = ["San Francisco", "Los Angeles", "Boston", "New York"];
 const teamLabel: Record<string, string> = {
   "San Francisco": "샌프란시스코",
@@ -132,6 +140,18 @@ const hitLabel: Record<ThreatHit, string> = {
   home_run: "홈런",
   walk: "볼넷",
 };
+const expansionLabel: Record<ExpansionSet, string> = { big_fly: "Big Fly" };
+const expansionCatalog = [
+  { id: "big_fly" as ExpansionSet, code: "BF", name: "Big Fly", count: 15, ready: true },
+  { code: "CO", name: "Coaches", count: 15, ready: false },
+  { code: "RC", name: "Rally Cap", count: 15, ready: false },
+  { code: "NM", name: "Naturals & Magna Glove", count: 10, ready: false },
+  { code: "RH", name: "Robot Hitters", count: 10, ready: false },
+  { code: "CP", name: "Cyborg Pitchers", count: 10, ready: false },
+  { code: "ER", name: "Errors!", count: 15, ready: false },
+  { code: "HC", name: "Home Cookin'", count: 15, ready: false },
+  { code: "DT", name: "Double Trouble", count: 15, ready: false },
+] as const;
 
 function shuffle<T>(input: T[]) {
   const result = [...input];
@@ -162,15 +182,18 @@ function makeSide(team: string): Side {
     bases: [null, null, null],
     pending: [],
     pendingSpeed: null,
+    pendingHitAndRun: false,
     score: 0,
     revenue: 0,
   };
 }
 
-function makeGame(playerTeam: string): GameState {
+function makeGame(playerTeam: string, enabledExpansions: ExpansionSet[] = []): GameState {
   const rivals = teams.filter((team) => team !== playerTeam);
   const cpuTeam = rivals[Math.floor(Math.random() * rivals.length)];
-  const freeAgents = shuffle(cards.filter((card) => card.category === "free_agent" && card.id.startsWith("FA-")));
+  const freeAgents = shuffle(cards.filter((card) =>
+    card.category === "free_agent" && (card.set === "base" || enabledExpansions.includes(card.set as ExpansionSet)),
+  ));
   return {
     player: makeSide(playerTeam),
     cpu: makeSide(cpuTeam),
@@ -201,6 +224,7 @@ function makeGame(playerTeam: string): GameState {
       `${teamLabel[playerTeam]} vs ${teamLabel[cpuTeam]}`,
       "온덱 카드를 준비한 뒤 상대 위협 안타를 막고 내 카드를 냅니다.",
     ],
+    enabledExpansions: [...enabledExpansions],
   };
 }
 
@@ -237,7 +261,7 @@ function snapshotSides(player: Side, cpu: Side): ResolutionSnapshot {
   return { player: visualSide(player), cpu: visualSide(cpu) };
 }
 
-function advanceHit(side: Side, hit: ThreatHit, source: Card | undefined) {
+function advanceHit(side: Side, hit: ThreatHit, source: Card | undefined, hitAndRun = false) {
   const motions: Omit<RunnerMotion, "sequence" | "hit">[] = [];
   if (hit === "walk") {
     const next = [...side.bases];
@@ -275,9 +299,9 @@ function advanceHit(side: Side, hit: ThreatHit, source: Card | undefined) {
   for (let base = 2; base >= 0; base -= 1) {
     const runner = side.bases[base];
     if (!runner) continue;
-    let distance = hitDistance;
-    if (runner.speed === "fast") distance += 1;
-    if (runner.speed === "average" && base === 1 && hit === "single") distance = 2;
+    let distance = hitAndRun ? hitDistance + 1 : hitDistance;
+    if (!hitAndRun && runner.speed === "fast") distance += 1;
+    if (!hitAndRun && runner.speed === "average" && base === 1 && hit === "single") distance = 2;
     const ideal = base + distance;
     if (ideal >= 3) {
       side.score += 1;
@@ -376,11 +400,12 @@ function applyAbility(
 
   const granted = parseGrantedHit(text);
   const onScoringBase = Boolean(acting.bases[1] || acting.bases[2]);
+  const basesLoaded = acting.bases.every(Boolean);
   if (text.includes("quick eye") && opposingLast?.type === "cyborg" && granted) {
     acting.pending.push(granted);
     if (text.includes("2 walks")) acting.pending.push("walk");
     events.push(`퀵 아이가 ${hitLabel[granted]}를 추가했습니다.`);
-  } else if (text.includes("clutch") && onScoringBase && granted) {
+  } else if (text.includes("clutch") && (text.includes("all 3 bases") ? basesLoaded : onScoringBase) && granted) {
     acting.pending.push(granted);
     events.push(`클러치가 ${hitLabel[granted]}를 추가했습니다.`);
   } else if (text.includes("leadoff") && playIndex === 0 && granted) {
@@ -397,6 +422,20 @@ function applyAbility(
     if (steal.motions.length) {
       events.push(`도루로 보통·빠른 주자 ${steal.motions.length}명이 1베이스 진루${steal.scored ? `, ${steal.scored}득점` : ""}했습니다.`);
     }
+  }
+
+  if (text.includes("pinch runner") && acting.bases.some((runner) => runner && runner.speed !== "fast")) {
+    const changed = acting.bases.reduce((count, runner, index) => {
+      if (!runner || runner.speed === "fast") return count;
+      acting.bases[index] = { ...runner, speed: "fast" };
+      return count + 1;
+    }, 0);
+    events.push(`대주자가 기존 주자 ${changed}명을 빠른 주자로 교체했습니다.`);
+  }
+
+  if (text.includes("hit & run") && card.hits.length) {
+    acting.pendingHitAndRun = true;
+    events.push("히트 앤드 런 준비 · 이 카드의 안타마다 기존 주자가 1베이스 더 진루합니다.");
   }
 
   return { events, runnerMotions };
@@ -435,6 +474,10 @@ function applyDefensiveAbility(card: Card, acting: Side, opposing: Side, opposin
     opposing.pending = [];
     events.push("스핏볼이 사이보그의 위협 안타를 모두 취소했습니다.");
   }
+  if (text.includes("sinkerball") && opposing.pending.length && Boolean(opposing.bases[1] || opposing.bases[2])) {
+    opposing.pending = [];
+    events.push("싱커볼이 득점권 주자가 있는 상대의 위협 안타를 모두 취소했습니다.");
+  }
   if (text.includes("knuckle ball") && opposing.pending.some((hit) => hit !== "walk")) {
     opposing.pending = reduceHits(opposing.pending);
     events.push("너클볼이 모든 위협 안타를 1베이스 줄였습니다.");
@@ -449,10 +492,12 @@ function applyDefensiveAbility(card: Card, acting: Side, opposing: Side, opposin
 
 function settlePending(side: Side, source: Card | undefined) {
   const hits = [...side.pending];
+  const hitAndRun = side.pendingHitAndRun;
   side.pending = [];
   side.pendingSpeed = null;
+  side.pendingHitAndRun = false;
   const runnerMotions = hits.flatMap((hit, sequence) =>
-    advanceHit(side, hit, source).map((motion) => ({ ...motion, hit, sequence })),
+    advanceHit(side, hit, source, hitAndRun).map((motion) => ({ ...motion, hit, sequence })),
   );
   return { hits, runnerMotions };
 }
@@ -470,6 +515,7 @@ function playOne(card: Card, acting: Side, opposing: Side) {
   acting.played.push(card);
   acting.revenue += card.revenue;
   acting.pending.push(...card.hits);
+  if (card.hits.length && card.abilityText?.toLowerCase().includes("hit & run")) acting.pendingHitAndRun = true;
   if (acting.pending.length) acting.pendingSpeed = card.speed;
   const threatFrame: MoveFrame = { acting: visualSide(acting), opposing: visualSide(opposing) };
   return {
@@ -485,8 +531,8 @@ function playOne(card: Card, acting: Side, opposing: Side) {
 function chooseCpuCard(side: Side, opponent: Side) {
   const pendingCount = opponent.pending.length;
   const ranked = [...side.hand].sort((a, b) => {
-    const aDefense = a.abilityText && /Glove|Fastball|Curve|Pick Off|Double Play|Knuckle/.test(a.abilityText) ? 1 : 0;
-    const bDefense = b.abilityText && /Glove|Fastball|Curve|Pick Off|Double Play|Knuckle/.test(b.abilityText) ? 1 : 0;
+    const aDefense = a.abilityText && /Glove|Fastball|Curve|Pick Off|Double Play|Knuckle|Sinkerball/.test(a.abilityText) ? 1 : 0;
+    const bDefense = b.abilityText && /Glove|Fastball|Curve|Pick Off|Double Play|Knuckle|Sinkerball/.test(b.abilityText) ? 1 : 0;
     if (pendingCount) return bDefense - aDefense || b.revenue - a.revenue;
     return b.hits.length - a.hits.length || b.revenue - a.revenue;
   });
@@ -513,6 +559,7 @@ function drawNextLineup(side: Side) {
   side.bases = [null, null, null];
   side.pending = [];
   side.pendingSpeed = null;
+  side.pendingHitAndRun = false;
   side.score = 0;
   side.revenue = 0;
 }
@@ -753,16 +800,19 @@ function abilityIsActive(card: Card, acting: Side, opposing: Side) {
   if (text.includes("fastball")) return opposing.pending.length > 0 && opposingLast?.type === "natural";
   if (text.includes("curve")) return opposing.pending.length > 0 && opposingLast?.type === "robot";
   if (text.includes("spit ball")) return opposing.pending.length > 0 && opposingLast?.type === "cyborg";
+  if (text.includes("sinkerball")) return opposing.pending.length > 0 && Boolean(opposing.bases[1] || opposing.bases[2]);
   if (text.includes("knuckle ball")) return opposing.pending.some((hit) => hit !== "walk");
   if (text.startsWith("walk:")) return opposing.pending.some((hit) => hit !== "walk");
   if (text.includes("quick eye")) return opposingLast?.type === "cyborg";
-  if (text.includes("clutch")) return Boolean(acting.bases[1] || acting.bases[2]);
+  if (text.includes("clutch")) return text.includes("all 3 bases") ? acting.bases.every(Boolean) : Boolean(acting.bases[1] || acting.bases[2]);
   if (text.includes("leadoff")) return acting.played.length === 0;
   if (text.includes("rally")) return acting.score < opposing.score;
   if (text.includes("stolen base")) {
     const preview = cloneSide(acting);
     return advanceStealRunners(preview).motions.length > 0;
   }
+  if (text.includes("pinch runner")) return acting.bases.some((runner) => runner && runner.speed !== "fast");
+  if (text.includes("hit & run")) return card.hits.length > 0 && acting.bases.some(Boolean);
   return false;
 }
 
@@ -920,9 +970,115 @@ function ScorePanel({ game }: { game: GameState }) {
   );
 }
 
+function TitleScreen({
+  selectedTeam,
+  enabledExpansions,
+  onTeamChange,
+  onExpansionChange,
+  onStart,
+}: {
+  selectedTeam: string;
+  enabledExpansions: ExpansionSet[];
+  onTeamChange: (team: string) => void;
+  onExpansionChange: (set: ExpansionSet, enabled: boolean) => void;
+  onStart: () => void;
+}) {
+  const marketCount = baseCards.filter((card) => card.category === "free_agent").length
+    + enabledExpansions.reduce((total, set) => total + expansionCards.filter((card) => card.set === set).length, 0);
+  return (
+    <main className="title-screen">
+      <section className="title-hero">
+        <div className="title-badge" aria-hidden="true"><span>20</span><b>45</b></div>
+        <p>PRIVATE DIGITAL LEAGUE</p>
+        <h1>하이라이트<br /><i>리그 2045</i></h1>
+        <span>여섯 장의 라인업으로 만드는 미래 야구의 결정적 장면</span>
+        <div className="title-flow" aria-label="시즌 진행 방식">
+          <b>3경기 미니 시즌</b><i>→</i><b>FA 영입</b><i>→</i><b>7전 4선승 월드 시리즈</b>
+        </div>
+      </section>
+
+      <section className="season-setup" aria-label="새 시즌 설정">
+        <div className="setup-heading">
+          <div><p>NEW SEASON</p><h2>리그 설정</h2></div>
+          <span>스타터 덱과 이번 시즌에 섞을 확장을 선택하세요.</span>
+        </div>
+
+        <div className="setup-block">
+          <div className="setup-label"><span>01</span><div><b>스타터 덱</b><small>15장 · 시즌 중 변경 불가</small></div></div>
+          <div className="starter-options">
+            {teams.map((team) => (
+              <button type="button" key={team} className={selectedTeam === team ? "is-selected" : ""} onClick={() => onTeamChange(team)}>
+                <strong>{teamCode[team]}</strong><span>{teamLabel[team]}</span><small>ST 15장</small>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="setup-block">
+          <div className="setup-label"><span>02</span><div><b>카드 세트</b><small>시장 카드 풀 구성</small></div></div>
+          <div className="set-options">
+            <article className="set-option is-fixed">
+              <span className="set-code">BASE</span><div><b>기본판</b><small>ST 60장 + FA 60장</small></div><em>필수</em>
+            </article>
+            {expansionCatalog.map((set) => set.ready ? (
+              <label className={`set-option ${enabledExpansions.includes(set.id) ? "is-enabled" : ""}`} key={set.code}>
+                <input type="checkbox" checked={enabledExpansions.includes(set.id)} onChange={(event) => onExpansionChange(set.id, event.target.checked)} />
+                <span className="set-code">{set.code}</span><div><b>{set.name}</b><small>FA {set.count}장 · 신규 능력 3종</small></div><em>{enabledExpansions.includes(set.id) ? "사용" : "제외"}</em>
+              </label>
+            ) : (
+              <article className="set-option is-upcoming" key={set.code}>
+                <span className="set-code">{set.code}</span><div><b>{set.name}</b><small>{set.count}장 · 카드 입력 준비 중</small></div><em>예정</em>
+              </article>
+            ))}
+          </div>
+        </div>
+
+        <div className="season-summary">
+          <div><small>내 팀</small><b>{teamCode[selectedTeam]} · {teamLabel[selectedTeam]}</b></div>
+          <div><small>활성 확장</small><b>{enabledExpansions.length ? enabledExpansions.map((set) => expansionLabel[set]).join(", ") : "기본판만"}</b></div>
+          <div><small>FA 카드 풀</small><b>{marketCount}장</b></div>
+        </div>
+        <button type="button" className="season-start" onClick={onStart}><span>PLAY BALL</span><b>시즌 시작</b><i>→</i></button>
+      </section>
+    </main>
+  );
+}
+
+function SeasonResult({ game, onRestart, onTitle }: { game: GameState; onRestart: () => void; onTitle: () => void }) {
+  const won = game.worldSeriesWins.player > game.worldSeriesWins.cpu;
+  const activeFa = activeRoster(game.player).filter((card) => card.category === "free_agent");
+  return (
+    <main className={`season-result ${won ? "is-champion" : "is-runner-up"}`}>
+      <section className="result-scorecard">
+        <p>WORLD SERIES · FINAL</p>
+        <span className="result-kicker">{won ? "2045 LEAGUE CHAMPION" : "SEASON COMPLETE"}</span>
+        <h1>{won ? "챔피언" : "준우승"}</h1>
+        <div className="result-matchup">
+          <div><small>YOU</small><b>{teamCode[game.player.team]}</b><span>{teamLabel[game.player.team]}</span></div>
+          <strong>{game.worldSeriesWins.player}<i>—</i>{game.worldSeriesWins.cpu}</strong>
+          <div><small>CPU</small><b>{teamCode[game.cpu.team]}</b><span>{teamLabel[game.cpu.team]}</span></div>
+        </div>
+        <p className="result-copy">{won ? "마지막 위협까지 지켜내고 월드 시리즈 정상에 올랐습니다." : "월드 시리즈는 끝났지만 완성한 로스터와 시즌 기록은 남았습니다."}</p>
+        <div className="result-stats">
+          <div><small>미니 시즌</small><b>{game.exhibitionWins.player}승 {game.exhibitionWins.cpu}패</b></div>
+          <div><small>영입 FA</small><b>{activeFa.length}명</b></div>
+          <div><small>마이너 이동</small><b>{game.player.minors.length}명</b></div>
+          <div><small>사용 세트</small><b>{game.enabledExpansions.length ? `BASE + ${game.enabledExpansions.map((set) => expansionLabel[set]).join(" + ")}` : "BASE"}</b></div>
+        </div>
+        <div className="result-actions">
+          <button type="button" className="result-primary" onClick={onRestart}>같은 설정으로 다시</button>
+          <button type="button" className="result-secondary" onClick={onTitle}>타이틀로</button>
+        </div>
+      </section>
+    </main>
+  );
+}
+
 export function GamePrototype() {
+  const [screen, setScreen] = useState<Screen>("title");
   const [selectedTeam, setSelectedTeam] = useState("San Francisco");
-  const [game, setGame] = useState<GameState>(() => makeGame("San Francisco"));
+  const [enabledExpansions, setEnabledExpansions] = useState<ExpansionSet[]>([]);
+  const [game, setGame] = useState<GameState>(() => makeGame("San Francisco", []));
   const [showRules, setShowRules] = useState(false);
   const [playbackIndex, setPlaybackIndex] = useState(0);
   const [playbackRunning, setPlaybackRunning] = useState(false);
@@ -1030,13 +1186,24 @@ export function GamePrototype() {
     setPlaybackRunning(false);
   }
 
-  function restart(team = selectedTeam) {
-    setGame(makeGame(team));
+  function restart() {
+    setGame(makeGame(selectedTeam, enabledExpansions));
+    setScreen("game");
   }
 
-  function selectTeam(team: string) {
-    setSelectedTeam(team);
-    setGame(makeGame(team));
+  function startSeason() {
+    setGame(makeGame(selectedTeam, enabledExpansions));
+    setScreen("game");
+    if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function setExpansion(set: ExpansionSet, enabled: boolean) {
+    setEnabledExpansions((current) => enabled ? [...new Set([...current, set])] : current.filter((item) => item !== set));
+  }
+
+  function returnToTitle() {
+    setScreen("title");
+    if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   function prepareOnDeck(cardId: string | null) {
@@ -1325,6 +1492,22 @@ export function GamePrototype() {
   const playbackStep = Math.max(0, game.lastResolution.slice(0, playbackIndex + 1).filter((event) => Boolean(event.snapshot)).length - 1);
   const pendingRecruit = game.market.find((card) => card.id === game.pendingPurchaseId) ?? null;
 
+  if (screen === "title") {
+    return (
+      <TitleScreen
+        selectedTeam={selectedTeam}
+        enabledExpansions={enabledExpansions}
+        onTeamChange={setSelectedTeam}
+        onExpansionChange={setExpansion}
+        onStart={startSeason}
+      />
+    );
+  }
+
+  if (game.phase === "series_finished") {
+    return <SeasonResult game={game} onRestart={restart} onTitle={returnToTitle} />;
+  }
+
   return (
     <main className="game-shell">
       {turnTransition && (
@@ -1344,7 +1527,8 @@ export function GamePrototype() {
         </div>
         <nav aria-label="프로토타입 메뉴">
           <button type="button" className="nav-button" onClick={() => setShowRules((value) => !value)}>{showRules ? "규칙 닫기" : "핵심 규칙"}</button>
-          <button type="button" className="restart-button" onClick={() => restart()}>새 미니게임</button>
+          <button type="button" className="nav-button" onClick={returnToTitle}>타이틀</button>
+          <button type="button" className="restart-button" onClick={restart}>새 시즌</button>
         </nav>
       </header>
 
@@ -1362,13 +1546,10 @@ export function GamePrototype() {
         </aside>
       )}
 
-      <section className="team-picker" aria-label="팀 선택">
-        <span>내 스타터 덱</span>
-        {teams.map((team) => (
-          <button type="button" key={team} className={team === selectedTeam ? "active" : ""} onClick={() => selectTeam(team)}>
-            <b>{teamCode[team]}</b> {teamLabel[team]}
-          </button>
-        ))}
+      <section className="game-config-strip" aria-label="현재 시즌 설정">
+        <div><small>STARTER</small><b>{teamCode[game.player.team]} · {teamLabel[game.player.team]}</b></div>
+        <div><small>CARD SETS</small><b>{game.enabledExpansions.length ? `BASE + ${game.enabledExpansions.map((set) => expansionLabel[set]).join(" + ")}` : "BASE ONLY"}</b></div>
+        <span>시즌 설정은 타이틀에서 변경할 수 있습니다.</span>
       </section>
 
       <section className="series-strip" aria-label="시리즈 진행 상황">
@@ -1447,15 +1628,7 @@ export function GamePrototype() {
         </div>
       </section>
 
-      {game.phase === "series_finished" ? (
-        <section className="result-panel">
-          <p>WORLD SERIES FINAL</p>
-          <h2>{game.worldSeriesWins.player > game.worldSeriesWins.cpu ? "챔피언" : "준우승"}</h2>
-          <strong>{teamCode[game.player.team]} {game.worldSeriesWins.player} — {game.worldSeriesWins.cpu} {teamCode[game.cpu.team]}</strong>
-          <span>3경기 미니 시즌과 7전 4선승 월드 시리즈를 완료했습니다.</span>
-          <button type="button" onClick={() => restart()}>같은 팀으로 새 시즌</button>
-        </section>
-      ) : game.phase === "visitor_save" ? (
+      {game.phase === "visitor_save" ? (
         <section ref={visitorSaveAnchorRef} className="visitor-save-panel">
           <div className="visitor-save-heading">
             <div>
@@ -1657,8 +1830,8 @@ export function GamePrototype() {
       </section>
 
       <footer>
-        <span>BASE DATA · 120 CARDS VERIFIED</span>
-        <span>CORE MATCH PROTOTYPE v0.2 · VISUAL RESOLUTION</span>
+        <span>ACTIVE DATA · {120 + game.enabledExpansions.reduce((total, set) => total + expansionCards.filter((card) => card.set === set).length, 0)} CARDS</span>
+        <span>CORE MATCH PROTOTYPE v0.3 · EXPANSION READY</span>
       </footer>
     </main>
   );

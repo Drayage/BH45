@@ -15,8 +15,8 @@ const body = IBM_Plex_Sans_KR({
 });
 
 export const metadata: Metadata = {
-  title: "2045 하이라이트 리그",
-  description: "원본 카드 밸런스를 보존한 디지털 야구 카드게임 프로토타입",
+  title: "하이라이트 리그 2045",
+  description: "원작 카드 밸런스를 보존한 비공개 디지털 야구 카드게임 프로토타입",
   icons: {
     icon: "/favicon.svg",
     shortcut: "/favicon.svg",

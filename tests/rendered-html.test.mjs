@@ -14,27 +14,28 @@ async function render() {
   );
 }
 
-test("server-renders the Korean game prototype", async () => {
+test("server-renders the Korean season title and settings", async () => {
   const response = await render();
   assert.equal(response.status, 200);
   assert.match(response.headers.get("content-type") ?? "", /^text\/html\b/i);
 
   const html = await response.text();
   assert.match(html, /<html lang="ko">/);
-  assert.match(html, /2045 하이라이트 리그/);
-  assert.match(html, /플레이 처리 중계/);
-  assert.match(html, /카드 공개/);
-  assert.match(html, /즉시 능력/);
-  assert.match(html, /내 스타터 덱/);
-  assert.match(html, /ST-\d{3}/);
+  assert.match(html, /하이라이트/);
+  assert.match(html, /리그 2045/);
+  assert.match(html, /리그 설정/);
+  assert.match(html, /스타터 덱/);
+  assert.match(html, /Big Fly/);
+  assert.match(html, /시즌 시작/);
   assert.doesNotMatch(html, /codex-preview|react-loading-skeleton/);
 });
 
 test("starter preview assets are removed and card data stays separated", async () => {
-  const [page, packageJson, cards] = await Promise.all([
+  const [page, packageJson, cards, expansions] = await Promise.all([
     readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
     readFile(new URL("../package.json", import.meta.url), "utf8"),
     readFile(new URL("../data/base-cards.json", import.meta.url), "utf8").then(JSON.parse),
+    readFile(new URL("../data/expansion-cards.json", import.meta.url), "utf8").then(JSON.parse),
   ]);
 
   await assert.rejects(access(new URL("../app/_sites-preview/SkeletonPreview.tsx", import.meta.url)));
@@ -49,4 +50,6 @@ test("starter preview assets are removed and card data stays separated", async (
   assert.ok(starters.every((card) => card.id.startsWith("ST-")));
   assert.ok(freeAgents.every((card) => card.id.startsWith("FA-")));
   assert.ok(cards.every((card) => !card.abilityText || card.abilityTextKo));
+  assert.equal(expansions.length, 15);
+  assert.ok(expansions.every((card) => card.set === "big_fly" && card.id.startsWith("BF-") && card.abilityTextKo));
 });
