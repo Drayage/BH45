@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type CSSProperties } from "react";
 import cardData from "@/data/base-cards.json";
 
 type PlayerType = "natural" | "cyborg" | "robot";
@@ -38,6 +38,13 @@ type Side = {
   revenue: number;
 };
 
+type ResolutionEvent = {
+  kind: "reveal" | "ability" | "settle" | "threat" | "save" | "buy" | "next";
+  actor: "player" | "cpu" | "system";
+  title: string;
+  detail: string;
+};
+
 type GameState = {
   player: Side;
   cpu: Side;
@@ -55,6 +62,8 @@ type GameState = {
   cpuBought: boolean;
   pendingPurchaseId: string | null;
   selectedId: string | null;
+  resolutionKey: number;
+  lastResolution: ResolutionEvent[];
   log: string[];
 };
 
@@ -135,6 +144,12 @@ function makeGame(playerTeam: string): GameState {
     cpuBought: false,
     pendingPurchaseId: null,
     selectedId: null,
+    resolutionKey: 0,
+    lastResolution: [
+      { kind: "reveal", actor: "player", title: "① 카드 공개", detail: "아래 손패에서 선수 한 명을 선택합니다." },
+      { kind: "ability", actor: "system", title: "② 즉시 능력", detail: "수비 능력으로 상대 위협 안타를 먼저 막습니다." },
+      { kind: "settle", actor: "system", title: "③ 안타 확정", detail: "남은 위협을 주루에 반영한 뒤 새 위협을 등록합니다." },
+    ],
     log: [
       `${teamLabel[playerTeam]} vs ${teamLabel[cpuTeam]}`,
       "상대 카드의 위협 안타를 막고, 남은 안타가 확정된 뒤 내 카드를 냅니다.",
@@ -170,17 +185,31 @@ function advanceHit(side: Side, hit: ThreatHit, source: Card | undefined) {
     return;
   }
 
-  const distance = hit === "single" ? 1 : hit === "double" ? 2 : hit === "triple" ? 3 : 4;
+  const hitDistance = hit === "single" ? 1 : hit === "double" ? 2 : hit === "triple" ? 3 : 4;
+  if (hitDistance === 4) {
+    side.score += side.bases.filter(Boolean).length + 1;
+    side.bases = [null, null, null];
+    return;
+  }
+
   const next: Array<Runner | null> = [null, null, null];
   for (let base = 2; base >= 0; base -= 1) {
     const runner = side.bases[base];
     if (!runner) continue;
-    const destination = base + distance;
-    if (destination >= 3) side.score += 1;
-    else next[destination] = runner;
+    let distance = hitDistance;
+    if (runner.speed === "fast") distance += 1;
+    if (runner.speed === "average" && base === 1 && hit === "single") distance = 2;
+    const ideal = base + distance;
+    if (ideal >= 3) {
+      side.score += 1;
+      continue;
+    }
+
+    const leadBase = next.findIndex((occupied, index) => index > base && Boolean(occupied));
+    const destination = leadBase >= 0 ? Math.min(ideal, leadBase - 1) : ideal;
+    next[Math.max(base, destination)] = runner;
   }
-  if (distance >= 4) side.score += 1;
-  else next[distance - 1] = { cardId: source?.id ?? "hit", speed: source?.speed ?? "average" };
+  next[hitDistance - 1] = { cardId: source?.id ?? "hit", speed: source?.speed ?? "average" };
   side.bases = next;
 }
 
@@ -221,6 +250,31 @@ function applyAbility(
   playIndex: number,
 ) {
   const text = card.abilityText?.toLowerCase() ?? "";
+  const events = applyDefensiveAbility(card, acting, opposing, opposingLast);
+  if (!text) return events;
+
+  const granted = parseGrantedHit(text);
+  const onScoringBase = Boolean(acting.bases[1] || acting.bases[2]);
+  if (text.includes("quick eye") && opposingLast?.type === "cyborg" && granted) {
+    acting.pending.push(granted);
+    if (text.includes("2 walks")) acting.pending.push("walk");
+    events.push(`퀵 아이가 ${hitLabel[granted]}를 추가했습니다.`);
+  } else if (text.includes("clutch") && onScoringBase && granted) {
+    acting.pending.push(granted);
+    events.push(`클러치가 ${hitLabel[granted]}를 추가했습니다.`);
+  } else if (text.includes("leadoff") && playIndex === 0 && granted) {
+    acting.pending.push(granted);
+    events.push(`리드오프가 ${hitLabel[granted]}를 추가했습니다.`);
+  } else if (text.includes("rally") && acting.score < opposing.score && granted) {
+    acting.pending.push(granted);
+    events.push(`랠리가 ${hitLabel[granted]}를 추가했습니다.`);
+  }
+
+  return events;
+}
+
+function applyDefensiveAbility(card: Card, acting: Side, opposing: Side, opposingLast: Card | undefined) {
+  const text = card.abilityText?.toLowerCase() ?? "";
   const events: string[] = [];
   if (!text) return events;
 
@@ -259,23 +313,6 @@ function applyAbility(
   if (text.startsWith("walk:")) {
     opposing.pending = opposing.pending.map(() => "walk");
     events.push("위협 안타가 볼넷으로 바뀌었습니다.");
-  }
-
-  const granted = parseGrantedHit(text);
-  const onScoringBase = Boolean(acting.bases[1] || acting.bases[2]);
-  if (text.includes("quick eye") && opposingLast?.type === "cyborg" && granted) {
-    acting.pending.push(granted);
-    if (text.includes("2 walks")) acting.pending.push("walk");
-    events.push(`퀵 아이가 ${hitLabel[granted]}를 추가했습니다.`);
-  } else if (text.includes("clutch") && onScoringBase && granted) {
-    acting.pending.push(granted);
-    events.push(`클러치가 ${hitLabel[granted]}를 추가했습니다.`);
-  } else if (text.includes("leadoff") && playIndex === 0 && granted) {
-    acting.pending.push(granted);
-    events.push(`리드오프가 ${hitLabel[granted]}를 추가했습니다.`);
-  } else if (text.includes("rally") && acting.score < opposing.score && granted) {
-    acting.pending.push(granted);
-    events.push(`랠리가 ${hitLabel[granted]}를 추가했습니다.`);
   }
 
   return events;
@@ -397,6 +434,56 @@ function activeRoster(side: Side) {
   return [...side.deck, ...side.discard, ...side.hand, ...side.played];
 }
 
+function moveEvents(actor: "player" | "cpu", card: Card, move: ReturnType<typeof playOne>): ResolutionEvent[] {
+  const who = actor === "player" ? "내 카드" : "CPU 카드";
+  const threatened = card.hits.length ? card.hits.map((hit) => hitLabel[hit]).join(" + ") : "위협 안타 없음";
+  return [
+    { kind: "reveal", actor, title: `${who} 공개`, detail: `${card.id} · ${typeLabel[card.type]} · 수익 ${card.revenue}` },
+    {
+      kind: "ability",
+      actor,
+      title: "즉시 능력 처리",
+      detail: move.events.length ? move.events.join(" ") : (card.abilityTextKo ?? "발동할 즉시 능력이 없습니다."),
+    },
+    {
+      kind: "settle",
+      actor: actor === "player" ? "cpu" : "player",
+      title: "상대 위협 확정",
+      detail: move.settled.length ? `${move.settled.map((hit) => hitLabel[hit]).join(" + ")}를 베이스에 반영했습니다.` : "남은 위협 안타가 없습니다.",
+    },
+    { kind: "threat", actor, title: "새 위협 등록", detail: threatened },
+  ];
+}
+
+function ResolutionConsole({ game }: { game: GameState }) {
+  const last = game.lastResolution.at(-1);
+  return (
+    <section className="resolution-console" key={game.resolutionKey} aria-live="polite">
+      <div className="resolution-header">
+        <div><p>LIVE RESOLUTION</p><h2>플레이 처리 중계</h2></div>
+        <div className="turn-order"><b>원정 YOU · 선공</b><span>→</span><b>홈 CPU · 후공</b></div>
+      </div>
+      <div className="flow-legend" aria-label="카드 처리 순서">
+        <span>1 카드 공개</span><i>→</i><span>2 즉시 능력</span><i>→</i><span>3 상대 위협 확정</span><i>→</i><span>4 새 위협 등록</span>
+      </div>
+      <div className="event-track">
+        {game.lastResolution.map((event, index) => (
+          <article
+            className={`event-card actor-${event.actor} kind-${event.kind}`}
+            key={`${game.resolutionKey}-${index}-${event.title}`}
+            style={{ animationDelay: `${index * 90}ms` } as CSSProperties}
+          >
+            <small>{event.actor === "player" ? "YOU" : event.actor === "cpu" ? "CPU" : "RULE"}</small>
+            <strong>{event.title}</strong>
+            <span>{event.detail}</span>
+          </article>
+        ))}
+      </div>
+      {last && <div className={`broadcast-call actor-${last.actor}`}><b>NOW</b><span>{last.title}</span><em>{last.detail}</em></div>}
+    </section>
+  );
+}
+
 function PlayerCard({ card, selected, disabled, onClick }: { card: Card; selected?: boolean; disabled?: boolean; onClick?: () => void }) {
   return (
     <button
@@ -447,14 +534,14 @@ function ScorePanel({ game }: { game: GameState }) {
     <section className="score-panel" aria-label="점수판">
       <div className="score-team">
         <span>{teamCode[game.cpu.team]}</span>
-        <strong>{game.cpu.score}</strong>
+        <strong key={`cpu-score-${game.cpu.score}-${game.resolutionKey}`}>{game.cpu.score}</strong>
       </div>
       <div className="inning-cell">
         <small>{game.stage === "exhibition" ? `EXHIBITION ${game.gameNumber}/3` : `WORLD SERIES ${game.gameNumber}`}</small>
         <b>{game.phase === "playing" ? `${game.round} / 6` : "FINAL"}</b>
       </div>
       <div className="score-team home-score">
-        <strong>{game.player.score}</strong>
+        <strong key={`player-score-${game.player.score}-${game.resolutionKey}`}>{game.player.score}</strong>
         <span>{teamCode[game.player.team]}</span>
       </div>
     </section>
@@ -488,6 +575,10 @@ export function GamePrototype() {
       const cpuMove = playOne(cpuCard, cpu, player);
       const nextRound = current.round + 1;
       const finished = player.hand.length === 0;
+      const resolution = [
+        ...moveEvents("player", playerCard, playerMove),
+        ...moveEvents("cpu", cpuCard, cpuMove),
+      ];
       const log = [
         ...current.log,
         `R${current.round} 나: ${playerMove.line}`,
@@ -499,7 +590,31 @@ export function GamePrototype() {
       ];
 
       if (finished) {
+        if (player.deck.length === 0 && player.discard.length) {
+          player.deck = shuffle(player.discard);
+          player.discard = [];
+        }
+        const saveCard = player.deck.shift();
+        if (saveCard) {
+          const saveEvents = applyDefensiveAbility(saveCard, player, cpu, cpu.played.at(-1));
+          player.discard.push(saveCard);
+          resolution.push({
+            kind: "save",
+            actor: "player",
+            title: "비지터 세이브",
+            detail: saveEvents.length
+              ? `${saveCard.id} 공개 · ${saveEvents.join(" ")}`
+              : `${saveCard.id} 공개 · 적용 가능한 수비 능력이 없습니다.`,
+          });
+          log.push(`비지터 세이브 · ${saveCard.id} ${saveEvents.join(" ") || "수비 효과 없음"}`);
+        }
         const finalCpu = commitPending(cpu, cpu.played.at(-1));
+        resolution.push({
+          kind: "settle",
+          actor: "cpu",
+          title: "홈팀 마지막 위협 확정",
+          detail: finalCpu.length ? finalCpu.map((hit) => hitLabel[hit]).join(" + ") : "모든 위협을 막았습니다.",
+        });
         if (finalCpu.length) log.push(`경기 종료 · 상대 마지막 ${finalCpu.map((hit) => hitLabel[hit]).join(", ")} 확정`);
         log.push(`FINAL ${teamCode[player.team]} ${player.score} : ${cpu.score} ${teamCode[cpu.team]}`);
 
@@ -514,6 +629,8 @@ export function GamePrototype() {
             round: current.round + 1,
             phase: "playing",
             selectedId: null,
+            resolutionKey: current.resolutionKey + 1,
+            lastResolution: resolution,
             log,
           };
         }
@@ -537,6 +654,8 @@ export function GamePrototype() {
             playerBudget: player.revenue,
             cpuBudget: cpu.revenue,
             selectedId: null,
+            resolutionKey: current.resolutionKey + 1,
+            lastResolution: resolution,
             log,
           };
         }
@@ -577,6 +696,11 @@ export function GamePrototype() {
           cpuBought: firstBuyer === "cpu",
           pendingPurchaseId: null,
           selectedId: null,
+          resolutionKey: current.resolutionKey + 1,
+          lastResolution: [
+            ...resolution,
+            { kind: "buy", actor: "system", title: "구매 라운드", detail: `내 예산 ${player.revenue} · CPU 예산 ${cpu.revenue}` },
+          ],
           log,
         };
       }
@@ -588,6 +712,8 @@ export function GamePrototype() {
         round: finished ? 6 : nextRound,
         phase: "playing",
         selectedId: null,
+        resolutionKey: current.resolutionKey + 1,
+        lastResolution: resolution,
         log,
       };
     });
@@ -620,6 +746,11 @@ export function GamePrototype() {
         freeAgentDeck: replenished.freeAgentDeck,
         playerBudget: current.playerBudget - (recruit.cost ?? 0),
         pendingPurchaseId: null,
+        resolutionKey: current.resolutionKey + 1,
+        lastResolution: [
+          { kind: "buy", actor: "player", title: `${recruit.id} 영입 완료`, detail: `${demote.id} 마이너 이동 · 새 선수는 다음 덱 맨 위` },
+          { kind: "next", actor: "system", title: "로스터 15명 유지", detail: `FA 영입 ${activeRoster(player).filter((card) => card.category === "free_agent").length}명 · 마이너 ${player.minors.length}명` },
+        ],
         log: [...current.log, `영입 · ${recruit.id} ${recruit.name} / ${demote.id} 마이너 이동`],
       };
     });
@@ -668,6 +799,11 @@ export function GamePrototype() {
         cpuBought: false,
         pendingPurchaseId: null,
         selectedId: null,
+        resolutionKey: current.resolutionKey + 1,
+        lastResolution: [
+          { kind: "next", actor: "system", title: enterWorldSeries ? "월드 시리즈 개막" : "다음 경기 시작", detail: `${gameNumber}차전 · 새 6장 라인업을 뽑았습니다.` },
+          { kind: "reveal", actor: "player", title: "원정팀 선공", detail: "YOU가 먼저 카드를 내고 CPU가 응답합니다." },
+        ],
         log,
       };
     });
@@ -696,6 +832,8 @@ export function GamePrototype() {
           <span>② 먼저 상대 위협 안타에 내 카드의 수비 능력 적용</span>
           <span>③ 남은 안타 확정 후 내 안타를 위협 칸에 등록</span>
           <span>④ 글러브·견제·병살·구종 상성·볼넷·퀵 아이·클러치 처리</span>
+          <span>⑤ 빠른 주자 +1베이스 · 보통 주자 2루에서 1루타 득점 · 추월 금지</span>
+          <span>⑥ 홈팀 마지막 카드 뒤 원정팀 비지터 세이브</span>
           <span>※ 위협 안타: 아직 득점 처리되지 않아 다음 카드로 막을 수 있는 안타</span>
         </aside>
       )}
@@ -723,10 +861,12 @@ export function GamePrototype() {
 
       <ScorePanel game={game} />
 
+      <ResolutionConsole game={game} />
+
       <section className="stadium-board">
         <div className="dugout cpu-dugout">
           <div className="dugout-title">
-            <span>CPU · {teamLabel[game.cpu.team]}</span>
+            <span>CPU · {teamLabel[game.cpu.team]} <em>홈 · 후공</em></span>
             <b>수익 {game.cpu.revenue}</b>
           </div>
           <div className="cpu-hand" aria-label={`CPU 남은 카드 ${game.cpu.hand.length}장`}>
@@ -763,7 +903,7 @@ export function GamePrototype() {
 
         <div className="dugout player-dugout">
           <div className="dugout-title">
-            <span>YOU · {teamLabel[game.player.team]}</span>
+            <span>YOU · {teamLabel[game.player.team]} <em>원정 · 선공</em></span>
             <b>수익 {game.player.revenue}</b>
           </div>
           <div className="last-played player-last">
@@ -826,9 +966,9 @@ export function GamePrototype() {
           <div className="section-heading">
             <div>
               <p>ROUND {game.round} · YOUR MOVE</p>
-              <h2>플레이할 카드 한 장을 고르세요</h2>
+              <h2>카드를 내면 4단계가 순서대로 중계됩니다</h2>
             </div>
-            <span>선택 즉시 능력과 안타가 처리됩니다</span>
+            <span>공개 → 능력 → 상대 위협 확정 → 새 위협 등록</span>
           </div>
           <div className="card-hand">
             {game.player.hand.map((card) => (
@@ -871,7 +1011,7 @@ export function GamePrototype() {
 
       <footer>
         <span>BASE DATA · 120 CARDS VERIFIED</span>
-        <span>CORE MATCH PROTOTYPE v0.1</span>
+        <span>CORE MATCH PROTOTYPE v0.2 · VISUAL RESOLUTION</span>
       </footer>
     </main>
   );
