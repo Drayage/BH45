@@ -585,7 +585,7 @@ function PlayerCard({ card, selected, disabled, onClick }: { card: Card; selecte
   return (
     <button
       type="button"
-      className={`player-card type-${card.type} ${selected ? "is-selected" : ""}`}
+      className={`player-card type-${card.type} card-speed-${card.speed} ${selected ? "is-selected" : ""}`}
       onClick={onClick}
       disabled={disabled}
       aria-pressed={selected}
