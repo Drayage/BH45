@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import cardData from "@/data/base-cards.json";
 
 type PlayerType = "natural" | "cyborg" | "robot";
@@ -78,7 +78,14 @@ function shuffle<T>(input: T[]) {
 }
 
 function makeSide(team: string): Side {
-  const deck = shuffle(cards.filter((card) => card.category === "starter" && card.team === team));
+  const deck = shuffle(
+    cards.filter(
+      (card) =>
+        card.category === "starter" &&
+        card.id.startsWith("ST-") &&
+        card.team === team,
+    ),
+  );
   return {
     team,
     deck: deck.slice(6),
@@ -344,7 +351,6 @@ export function GamePrototype() {
   const [selectedTeam, setSelectedTeam] = useState("San Francisco");
   const [game, setGame] = useState<GameState>(() => makeGame("San Francisco"));
   const [showRules, setShowRules] = useState(false);
-  const freeAgents = useMemo(() => cards.filter((card) => card.category === "free_agent").slice(0, 4), []);
 
   function restart(team = selectedTeam) {
     setGame(makeGame(team));
@@ -522,19 +528,18 @@ export function GamePrototype() {
           </div>
         </article>
 
-        <article className="market-preview">
+        <article className="deck-status">
           <div className="section-heading compact">
-            <div><p>NEXT MILESTONE</p><h2>자유계약 시장</h2></div>
-            <span>기본판 60장 연결됨</span>
+            <div><p>STARTER DECK</p><h2>내 시작 덱 구성</h2></div>
+            <span>FA 카드 0장</span>
           </div>
-          <div className="market-cards">
-            {freeAgents.map((card) => (
-              <div key={card.id} className={`market-card type-${card.type}`}>
-                <span>{card.id}</span><b>{card.name}</b><em>비용 {card.cost}</em>
-              </div>
-            ))}
+          <div className="deck-counts">
+            <div><span>전체</span><strong>15</strong><em>ST 카드</em></div>
+            <div><span>손패</span><strong>{game.player.hand.length}</strong><em>플레이 가능</em></div>
+            <div><span>플레이</span><strong>{game.player.played.length}</strong><em>사용 완료</em></div>
+            <div><span>덱</span><strong>{game.player.deck.length}</strong><em>미사용</em></div>
           </div>
-          <p className="coming-note">구매·덱 교체 단계는 다음 구현 순서입니다. 카드 원본 수치 데이터는 이미 연결되어 있습니다.</p>
+          <p className="coming-note">현재 미니게임에는 선택한 팀의 ST 카드 15장만 들어갑니다. FA 카드는 미니게임 종료 후 구매 단계가 구현될 때 별도 시장에서만 나타납니다.</p>
         </article>
       </section>
 

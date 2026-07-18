@@ -252,14 +252,15 @@ button:focus-visible { outline: 3px solid #f6c969; outline-offset: 3px; }
 .result-panel > span { display: block; margin: 8px 0 18px; color: #98a9b0; font-size: 12px; }
 
 .lower-grid { display: grid; grid-template-columns: 1.05fr .95fr; gap: 18px; }
-.play-log, .market-preview { min-height: 290px; padding: 20px; border: 1px solid rgba(255,255,255,.1); border-radius: 6px; background: rgba(9,17,21,.7); }
+.play-log, .deck-status { min-height: 290px; padding: 20px; border: 1px solid rgba(255,255,255,.1); border-radius: 6px; background: rgba(9,17,21,.7); }
 .log-lines { height: 205px; overflow: auto; padding-right: 8px; }
 .log-lines p { margin: 0; padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,.06); color: #b7c3c7; font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: 10px; }
 .log-lines p:first-child { color: #f0c475; }
-.market-cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
-.market-card { --type: #65768c; min-height: 106px; display: flex; flex-direction: column; justify-content: flex-end; padding: 9px; border-top: 5px solid var(--type); border-radius: 3px; color: #253039; background: linear-gradient(#f7ecd4, #c8a96f); box-shadow: 0 6px 12px rgba(0,0,0,.25); }
-.market-card.type-cyborg { --type: #b64e42; }.market-card.type-robot { --type: #2d8b7c; }
-.market-card span { color: #6f5734; font-size: 8px; }.market-card b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; }.market-card em { margin-top: 5px; color: #9b432e; font-size: 9px; font-style: normal; font-weight: 800; }
+.deck-counts { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.deck-counts > div { min-height: 106px; display: grid; place-items: center; align-content: center; gap: 2px; border: 1px solid rgba(228,178,91,.22); border-top: 4px solid #dca451; border-radius: 3px; background: linear-gradient(160deg, rgba(228,178,91,.12), rgba(255,255,255,.02)); }
+.deck-counts span { color: #8499a2; font-size: 9px; font-weight: 700; letter-spacing: .12em; }
+.deck-counts strong { color: #f4e7c9; font-family: var(--font-display), sans-serif; font-size: 34px; font-weight: 400; line-height: 1; }
+.deck-counts em { color: #d09b50; font-size: 9px; font-style: normal; }
 .coming-note { margin: 15px 0 0; color: #768b94; font-size: 10px; line-height: 1.55; }
 
 footer { display: flex; justify-content: space-between; padding: 20px 3px 0; color: #53656d; font-size: 9px; font-weight: 700; letter-spacing: .16em; }
@@ -289,7 +290,7 @@ footer { display: flex; justify-content: space-between; padding: 20px 3px 0; col
   .card-hand .player-card { flex: 0 0 185px; scroll-snap-align: start; }
   .section-heading > span { display: none; }
   .lower-grid { grid-template-columns: 1fr; }
-  .market-cards { grid-template-columns: repeat(2, 1fr); }
+  .deck-counts { grid-template-columns: repeat(2, 1fr); }
 }
 
 @media (prefers-reduced-motion: reduce) {
