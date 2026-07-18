@@ -30,6 +30,7 @@ type Side = {
   deck: Card[];
   discard: Card[];
   minors: Card[];
+  onDeck: Card | null;
   hand: Card[];
   played: Card[];
   bases: Array<Runner | null>;
@@ -69,7 +70,7 @@ type GameState = {
   player: Side;
   cpu: Side;
   round: number;
-  phase: "playing" | "buying" | "series_finished";
+  phase: "setting_on_deck" | "playing" | "buying" | "series_finished";
   stage: "exhibition" | "world_series";
   gameNumber: number;
   exhibitionWins: { player: number; cpu: number };
@@ -134,6 +135,7 @@ function makeSide(team: string): Side {
     deck: deck.slice(6),
     discard: [],
     minors: [],
+    onDeck: null,
     hand: deck.slice(0, 6),
     played: [],
     bases: [null, null, null],
@@ -152,7 +154,7 @@ function makeGame(playerTeam: string): GameState {
     player: makeSide(playerTeam),
     cpu: makeSide(cpuTeam),
     round: 1,
-    phase: "playing",
+    phase: "setting_on_deck",
     stage: "exhibition",
     gameNumber: 1,
     exhibitionWins: { player: 0, cpu: 0 },
@@ -167,13 +169,13 @@ function makeGame(playerTeam: string): GameState {
     selectedId: null,
     resolutionKey: 0,
     lastResolution: [
-      { kind: "reveal", actor: "player", title: "① 카드 공개", detail: "아래 손패에서 선수 한 명을 선택합니다." },
+      { kind: "reveal", actor: "player", title: "온덱 준비", detail: "손패 한 장을 온덱에 보관하거나 건너뛴 뒤 경기를 시작합니다." },
       { kind: "ability", actor: "system", title: "② 즉시 능력", detail: "수비 능력으로 상대 위협 안타를 먼저 막습니다." },
       { kind: "settle", actor: "system", title: "③ 안타 확정", detail: "남은 위협을 주루에 반영한 뒤 새 위협을 등록합니다." },
     ],
     log: [
       `${teamLabel[playerTeam]} vs ${teamLabel[cpuTeam]}`,
-      "상대 카드의 위협 안타를 막고, 남은 안타가 확정된 뒤 내 카드를 냅니다.",
+      "온덱 카드를 준비한 뒤 상대 위협 안타를 막고 내 카드를 냅니다.",
     ],
   };
 }
@@ -184,6 +186,7 @@ function cloneSide(side: Side): Side {
     deck: [...side.deck],
     discard: [...side.discard],
     minors: [...side.minors],
+    onDeck: side.onDeck,
     hand: [...side.hand],
     played: [...side.played],
     bases: [...side.bases],
@@ -400,6 +403,10 @@ function chooseCpuCard(side: Side, opponent: Side) {
 }
 
 function drawNextLineup(side: Side) {
+  if (side.onDeck) {
+    side.deck.unshift(side.onDeck);
+    side.onDeck = null;
+  }
   side.discard.push(...side.played);
   side.played = [];
   side.hand = [];
@@ -480,7 +487,7 @@ function miniGameWinner(player: Side, cpu: Side): "player" | "cpu" | "tie" {
 }
 
 function activeRoster(side: Side) {
-  return [...side.deck, ...side.discard, ...side.hand, ...side.played];
+  return [...side.deck, ...side.discard, ...side.hand, ...side.played, ...(side.onDeck ? [side.onDeck] : [])];
 }
 
 function moveEvents(actor: "player" | "cpu", card: Card, move: ReturnType<typeof playOne>): ResolutionEvent[] {
@@ -650,7 +657,7 @@ function ScorePanel({ game }: { game: GameState }) {
       </div>
       <div className="inning-cell">
         <small>{game.stage === "exhibition" ? `EXHIBITION ${game.gameNumber}/3` : `WORLD SERIES ${game.gameNumber}`}</small>
-        <b>{game.phase === "playing" ? `${game.round} / 6` : "FINAL"}</b>
+        <b>{game.phase === "playing" ? `${game.round} / 6` : game.phase === "setting_on_deck" ? "ON DECK" : game.phase === "buying" ? "BUY" : "FINAL"}</b>
       </div>
       <div className="score-team home-score">
         <strong key={`player-score-${game.player.score}`}>{game.player.score}</strong>
@@ -760,13 +767,52 @@ export function GamePrototype() {
     setGame(makeGame(team));
   }
 
-  function playRound(cardId: string) {
+  function prepareOnDeck(cardId: string | null) {
+    setGame((current) => {
+      if (current.phase !== "setting_on_deck") return current;
+      const player = cloneSide(current.player);
+      let detail = "온덱 없이 라인업 6장으로 시작합니다.";
+      if (cardId) {
+        const selected = player.hand.find((card) => card.id === cardId);
+        if (!selected) return current;
+        player.hand = player.hand.filter((card) => card.id !== selected.id);
+        player.onDeck = selected;
+        const replacement = player.deck.shift();
+        if (replacement) player.hand.push(replacement);
+        detail = `${selected.id}를 온덱에 보관하고 ${replacement?.id ?? "대체 카드 없음"}으로 손패를 보충했습니다.`;
+      }
+      return {
+        ...current,
+        player,
+        phase: "playing",
+        resolutionKey: current.resolutionKey + 1,
+        lastResolution: [{ kind: "next", actor: "player", title: "온덱 준비 완료", detail }],
+        log: [...current.log, `온덱 준비 · ${detail}`],
+      };
+    });
+  }
+
+  function playRound(cardId: string, usePinchHitter = false) {
     if (game.phase !== "playing" || playbackRunning) return;
     setGame((current) => {
       const player = cloneSide(current.player);
       const cpu = cloneSide(current.cpu);
-      const playerCard = player.hand.find((card) => card.id === cardId);
-      if (!playerCard) return current;
+      const selectedCard = player.hand.find((card) => card.id === cardId);
+      if (!selectedCard) return current;
+      let playerCard = selectedCard;
+      let pinchHitDetail: string | null = null;
+      if (usePinchHitter) {
+        if (!selectedCard.pinchHitter) return current;
+        const fromOnDeck = Boolean(player.onDeck);
+        const replacement = player.onDeck ?? player.deck.shift();
+        if (!replacement) return current;
+        player.hand = player.hand.filter((card) => card.id !== selectedCard.id);
+        player.discard.push(selectedCard);
+        player.onDeck = null;
+        player.hand.push(replacement);
+        playerCard = replacement;
+        pinchHitDetail = `${selectedCard.id}를 더그아웃으로 보내고 ${fromOnDeck ? "온덱" : "라인업 맨 위"} ${replacement.id}를 투입했습니다.`;
+      }
 
       const playerMove = playOne(playerCard, player, cpu);
       const cpuCard = chooseCpuCard(cpu, player);
@@ -777,8 +823,12 @@ export function GamePrototype() {
         ...moveEvents("player", playerCard, playerMove),
         ...moveEvents("cpu", cpuCard, cpuMove),
       ];
+      if (pinchHitDetail) {
+        resolution[0] = { ...resolution[0], title: "PH 대타 투입", detail: pinchHitDetail };
+      }
       const log = [
         ...current.log,
+        ...(pinchHitDetail ? [`R${current.round} PH: ${pinchHitDetail}`] : []),
         `R${current.round} 나: ${playerMove.line}`,
         ...playerMove.events.map((event) => `↳ ${event}`),
         playerMove.settled.length ? `↳ 상대 ${playerMove.settled.map((hit) => hitLabel[hit]).join(", ")} 확정` : "↳ 상대 위협 안타 없음",
@@ -792,7 +842,9 @@ export function GamePrototype() {
           player.deck = shuffle(player.discard);
           player.discard = [];
         }
-        const saveCard = player.deck.shift();
+        const saveFromOnDeck = Boolean(player.onDeck);
+        const saveCard = player.onDeck ?? player.deck.shift();
+        player.onDeck = null;
         if (saveCard) {
           const saveEvents = applyDefensiveAbility(saveCard, player, cpu, cpu.played.at(-1));
           player.discard.push(saveCard);
@@ -801,12 +853,12 @@ export function GamePrototype() {
             actor: "player",
             title: "비지터 세이브",
             detail: saveEvents.length
-              ? `${saveCard.id} 공개 · ${saveEvents.join(" ")}`
-              : `${saveCard.id} 공개 · 적용 가능한 수비 능력이 없습니다.`,
+              ? `${saveFromOnDeck ? "온덱" : "라인업 맨 위"} ${saveCard.id} 공개 · ${saveEvents.join(" ")}`
+              : `${saveFromOnDeck ? "온덱" : "라인업 맨 위"} ${saveCard.id} 공개 · 적용 가능한 수비 능력이 없습니다.`,
             card: saveCard,
             snapshot: snapshotSides(player, cpu),
           });
-          log.push(`비지터 세이브 · ${saveCard.id} ${saveEvents.join(" ") || "수비 효과 없음"}`);
+          log.push(`비지터 세이브 · ${saveFromOnDeck ? "온덱" : "라인업"} ${saveCard.id} ${saveEvents.join(" ") || "수비 효과 없음"}`);
         }
         const finalCpu = commitPending(cpu, cpu.played.at(-1));
         resolution.push({
@@ -993,7 +1045,7 @@ export function GamePrototype() {
         stage,
         gameNumber,
         round: 1,
-        phase: "playing",
+        phase: "setting_on_deck",
         playerBudget: 0,
         cpuBudget,
         purchaseTurn: null,
@@ -1002,8 +1054,7 @@ export function GamePrototype() {
         selectedId: null,
         resolutionKey: current.resolutionKey + 1,
         lastResolution: [
-          { kind: "next", actor: "system", title: enterWorldSeries ? "월드 시리즈 개막" : "다음 경기 시작", detail: `${gameNumber}차전 · 새 6장 라인업을 뽑았습니다.` },
-          { kind: "reveal", actor: "player", title: "원정팀 선공", detail: "YOU가 먼저 카드를 내고 CPU가 응답합니다." },
+          { kind: "next", actor: "system", title: enterWorldSeries ? "월드 시리즈 개막" : "다음 경기 준비", detail: `${gameNumber}차전 · 새 6장 라인업에서 온덱 카드를 준비합니다.` },
         ],
         log,
       };
@@ -1012,6 +1063,7 @@ export function GamePrototype() {
 
   const playbackTotal = game.lastResolution.filter((event) => Boolean(event.snapshot)).length;
   const playbackStep = Math.max(0, game.lastResolution.slice(0, playbackIndex + 1).filter((event) => Boolean(event.snapshot)).length - 1);
+  const pendingRecruit = game.market.find((card) => card.id === game.pendingPurchaseId) ?? null;
 
   return (
     <main className="game-shell">
@@ -1045,6 +1097,7 @@ export function GamePrototype() {
           <span>④ 글러브·견제·병살·구종 상성·볼넷·퀵 아이·클러치 처리</span>
           <span>⑤ 빠른 주자 +1베이스 · 보통 주자 2루에서 1루타 득점 · 추월 금지</span>
           <span>⑥ 홈팀 마지막 카드 뒤 원정팀 비지터 세이브</span>
+          <span>⑦ 경기 전 온덱 1장 선택 가능 · PH 카드는 버리고 온덱 또는 라인업 맨 위 카드 투입</span>
           <span>※ 위협 안타: 아직 득점 처리되지 않아 다음 카드로 막을 수 있는 안타</span>
         </aside>
       )}
@@ -1129,7 +1182,7 @@ export function GamePrototype() {
             <b>수익 {game.player.revenue}</b>
           </div>
           <div className="last-played player-last">
-            {game.player.played.at(-1) ? <PlayerCard card={game.player.played.at(-1)!} disabled /> : <div className="empty-card">아래 손패에서 첫 카드를 선택하세요</div>}
+            {game.player.played.at(-1) ? <PlayerCard card={game.player.played.at(-1)!} disabled /> : <div className="empty-card">{game.phase === "setting_on_deck" ? "먼저 아래에서 온덱 카드를 준비하세요" : "아래 손패에서 첫 카드를 선택하세요"}</div>}
           </div>
         </div>
       </section>
@@ -1168,20 +1221,51 @@ export function GamePrototype() {
               );
             })}
           </div>
-          {game.pendingPurchaseId ? (
+          {pendingRecruit ? (
             <div className="demote-panel">
-              <div><p>ROSTER MUST STAY AT 15</p><h3>마이너로 보낼 이번 경기 선수를 선택하세요</h3></div>
-              <div className="demote-cards">
-                {game.player.played.map((card) => (
-                  <button type="button" key={card.id} onClick={() => sendToMinors(card.id)}>
-                    <b>{card.id}</b><span>{typeLabel[card.type]}</span><em>수익 {card.revenue}</em>
-                  </button>
-                ))}
+              <div className="recruit-review">
+                <p>영입 예정</p>
+                <h3>{pendingRecruit.name} · 비용 {pendingRecruit.cost}</h3>
+                <PlayerCard card={pendingRecruit} disabled />
+              </div>
+              <div className="demote-review">
+                <div className="demote-heading">
+                  <p>ROSTER MUST STAY AT 15</p>
+                  <h3>마이너로 보낼 선수를 카드 내용까지 비교해 선택하세요</h3>
+                  <span>선택한 선수는 활성 로스터에서 빠지고, 영입 선수는 다음 덱 맨 위에 놓입니다.</span>
+                </div>
+                <div className="demote-cards">
+                  {game.player.played.map((card) => (
+                    <div className="demote-option" key={card.id}>
+                      <PlayerCard card={card} onClick={() => sendToMinors(card.id)} />
+                      <span>이 선수를 마이너로 보내고 영입 확정</span>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           ) : (
             <p className="buy-help">영입할 FA 카드를 먼저 선택하세요. 구매한 선수는 덱 맨 위에 놓여 다음 경기에 반드시 등장합니다.</p>
           )}
+        </section>
+      ) : game.phase === "setting_on_deck" ? (
+        <section className="on-deck-setup">
+          <div className="on-deck-header">
+            <div>
+              <p>PRE-GAME · ON DECK</p>
+              <h2>온덱으로 보관할 카드 한 장을 선택하세요</h2>
+              <span>선택한 카드는 손패에서 빼고 라인업 맨 위 카드로 보충합니다. PH 카드 사용이나 비지터 세이브 때 온덱 카드를 꺼낼 수 있습니다.</span>
+            </div>
+            <button type="button" onClick={() => prepareOnDeck(null)}>온덱 없이 시작</button>
+          </div>
+          <div className="on-deck-choices">
+            {game.player.hand.map((card) => (
+              <div className="on-deck-option" key={card.id}>
+                <PlayerCard card={card} onClick={() => prepareOnDeck(card.id)} />
+                <span>이 카드를 온덱에 보관</span>
+              </div>
+            ))}
+          </div>
         </section>
       ) : (
         <section ref={handAnchorRef} className={`hand-section ${playbackRunning ? "is-locked" : ""}`}>
@@ -1192,15 +1276,35 @@ export function GamePrototype() {
             </div>
             <span>공개 → 능력 → 상대 위협 확정 → 새 위협 등록</span>
           </div>
+          <aside className={`on-deck-summary ${game.player.onDeck ? "has-card" : "is-empty"}`}>
+            <div><small>ON DECK</small><strong>{game.player.onDeck ? game.player.onDeck.id : "준비하지 않음"}</strong></div>
+            {game.player.onDeck ? (
+              <>
+                <span>{typeLabel[game.player.onDeck.type]} · {speedLabel[game.player.onDeck.speed]} · {game.player.onDeck.hits.map((hit) => hitLabel[hit]).join(" + ") || "안타 없음"}</span>
+                <em>{game.player.onDeck.abilityTextKo ?? "즉시 능력 없음"}</em>
+              </>
+            ) : <span>PH 사용 시 라인업 맨 위의 비공개 카드를 투입합니다.</span>}
+          </aside>
           <div className="card-hand">
             {game.player.hand.map((card) => (
-              <PlayerCard
-                key={card.id}
-                card={card}
-                selected={game.selectedId === card.id}
-                disabled={playbackRunning}
-                onClick={() => playRound(card.id)}
-              />
+              <div className="hand-card-slot" key={card.id}>
+                <PlayerCard
+                  card={card}
+                  selected={game.selectedId === card.id}
+                  disabled={playbackRunning}
+                  onClick={() => playRound(card.id)}
+                />
+                {card.pinchHitter && (
+                  <button
+                    type="button"
+                    className="pinch-hit-action"
+                    disabled={playbackRunning || (!game.player.onDeck && game.player.deck.length === 0)}
+                    onClick={() => playRound(card.id, true)}
+                  >
+                    PH 사용 · {game.player.onDeck ? `온덱 ${game.player.onDeck.id}` : "라인업 맨 위"} 투입
+                  </button>
+                )}
+              </div>
             ))}
           </div>
         </section>
