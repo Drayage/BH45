@@ -25,6 +25,15 @@ type Card = {
 };
 
 type Runner = { cardId: string; speed: Speed };
+type RunnerMotion = {
+  sequence: number;
+  hit: ThreatHit;
+  cardId: string;
+  speed: Speed;
+  from: 0 | 1 | 2 | 3;
+  to: 1 | 2 | 3 | "score";
+  batter?: boolean;
+};
 type Side = {
   team: string;
   deck: Card[];
@@ -47,6 +56,7 @@ type ResolutionEvent = {
   detail: string;
   card?: Card;
   snapshot?: ResolutionSnapshot;
+  runnerMotions?: RunnerMotion[];
 };
 
 type VisualSide = {
@@ -214,25 +224,37 @@ function snapshotSides(player: Side, cpu: Side): ResolutionSnapshot {
 }
 
 function advanceHit(side: Side, hit: ThreatHit, source: Card | undefined) {
+  const motions: Omit<RunnerMotion, "sequence" | "hit">[] = [];
   if (hit === "walk") {
     const next = [...side.bases];
     if (next[0]) {
       if (next[1]) {
-        if (next[2]) side.score += 1;
+        if (next[2]) {
+          side.score += 1;
+          motions.push({ ...next[2], from: 3, to: "score" });
+        }
+        motions.push({ ...next[1], from: 2, to: 3 });
         next[2] = next[1];
       }
+      motions.push({ ...next[0], from: 1, to: 2 });
       next[1] = next[0];
     }
-    next[0] = { cardId: source?.id ?? "walk", speed: source?.speed ?? "average" };
+    const batter = { cardId: source?.id ?? "walk", speed: source?.speed ?? "average" } as Runner;
+    next[0] = batter;
+    motions.push({ ...batter, from: 0, to: 1, batter: true });
     side.bases = next;
-    return;
+    return motions;
   }
 
   const hitDistance = hit === "single" ? 1 : hit === "double" ? 2 : hit === "triple" ? 3 : 4;
   if (hitDistance === 4) {
+    side.bases.forEach((runner, base) => {
+      if (runner) motions.push({ ...runner, from: (base + 1) as 1 | 2 | 3, to: "score" });
+    });
+    motions.push({ cardId: source?.id ?? "hit", speed: source?.speed ?? "average", from: 0, to: "score", batter: true });
     side.score += side.bases.filter(Boolean).length + 1;
     side.bases = [null, null, null];
-    return;
+    return motions;
   }
 
   const next: Array<Runner | null> = [null, null, null];
@@ -245,15 +267,21 @@ function advanceHit(side: Side, hit: ThreatHit, source: Card | undefined) {
     const ideal = base + distance;
     if (ideal >= 3) {
       side.score += 1;
+      motions.push({ ...runner, from: (base + 1) as 1 | 2 | 3, to: "score" });
       continue;
     }
 
     const leadBase = next.findIndex((occupied, index) => index > base && Boolean(occupied));
     const destination = leadBase >= 0 ? Math.min(ideal, leadBase - 1) : ideal;
-    next[Math.max(base, destination)] = runner;
+    const finalBase = Math.max(base, destination);
+    next[finalBase] = runner;
+    if (finalBase !== base) motions.push({ ...runner, from: (base + 1) as 1 | 2 | 3, to: (finalBase + 1) as 1 | 2 | 3 });
   }
-  next[hitDistance - 1] = { cardId: source?.id ?? "hit", speed: source?.speed ?? "average" };
+  const batter = { cardId: source?.id ?? "hit", speed: source?.speed ?? "average" } as Runner;
+  next[hitDistance - 1] = batter;
+  motions.push({ ...batter, from: 0, to: hitDistance as 1 | 2 | 3, batter: true });
   side.bases = next;
+  return motions;
 }
 
 function removeRunner(side: Side, count: number, allowFast = true) {
@@ -361,12 +389,18 @@ function applyDefensiveAbility(card: Card, acting: Side, opposing: Side, opposin
   return events;
 }
 
-function commitPending(side: Side, source: Card | undefined) {
+function settlePending(side: Side, source: Card | undefined) {
   const hits = [...side.pending];
   side.pending = [];
   side.pendingSpeed = null;
-  hits.forEach((hit) => advanceHit(side, hit, source));
-  return hits;
+  const runnerMotions = hits.flatMap((hit, sequence) =>
+    advanceHit(side, hit, source).map((motion) => ({ ...motion, hit, sequence })),
+  );
+  return { hits, runnerMotions };
+}
+
+function commitPending(side: Side, source: Card | undefined) {
+  return settlePending(side, source).hits;
 }
 
 function playOne(card: Card, acting: Side, opposing: Side) {
@@ -375,7 +409,8 @@ function playOne(card: Card, acting: Side, opposing: Side) {
   acting.pendingSpeed = card.speed;
   const events = applyAbility(card, acting, opposing, opposingLast, acting.played.length);
   const abilityFrame: MoveFrame = { acting: visualSide(acting), opposing: visualSide(opposing) };
-  const settled = commitPending(opposing, opposingLast);
+  const settlement = settlePending(opposing, opposingLast);
+  const settled = settlement.hits;
   const settleFrame: MoveFrame = { acting: visualSide(acting), opposing: visualSide(opposing) };
   acting.hand = acting.hand.filter((item) => item.id !== card.id);
   acting.played.push(card);
@@ -386,6 +421,7 @@ function playOne(card: Card, acting: Side, opposing: Side) {
   return {
     events,
     settled,
+    runnerMotions: settlement.runnerMotions,
     frames: { reveal: revealFrame, ability: abilityFrame, settle: settleFrame, threat: threatFrame },
     line: `${teamCode[acting.team]} · ${card.id} ${typeLabel[card.type]} / ${card.hits.map((hit) => hitLabel[hit]).join(" + ") || "안타 없음"}`,
   };
@@ -510,6 +546,7 @@ function moveEvents(actor: "player" | "cpu", card: Card, move: ReturnType<typeof
       detail: move.settled.length ? `${move.settled.map((hit) => hitLabel[hit]).join(" + ")}를 베이스에 반영했습니다.` : "남은 위협 안타가 없습니다.",
       card,
       snapshot: orientFrame(actor, move.frames.settle),
+      runnerMotions: move.runnerMotions,
     },
     { kind: "threat", actor, title: "새 위협 등록", detail: threatened, card, snapshot: orientFrame(actor, move.frames.threat) },
   ];
@@ -620,6 +657,43 @@ function SpeedLegend() {
   );
 }
 
+function runnerPlaceLabel(place: RunnerMotion["from"] | RunnerMotion["to"]) {
+  if (place === 0) return "타석";
+  if (place === "score") return "득점";
+  return `${place}루`;
+}
+
+function RunnerMotionBoard({ motions }: { motions: RunnerMotion[] }) {
+  const scored = motions.filter((motion) => motion.to === "score").length;
+  return (
+    <div className="runner-motion-board" aria-label={`주자 이동 ${motions.length}건${scored ? `, ${scored}득점` : ""}`}>
+      <div className="runner-motion-heading">
+        <span>주자 이동</span>
+        <b>{scored ? `+${scored}점` : `${motions.length}명 이동`}</b>
+      </div>
+      <div className="runner-motion-list">
+        {motions.map((motion, index) => (
+          <div
+            className={`runner-motion motion-${motion.speed} ${motion.to === "score" ? "is-scoring" : ""}`}
+            key={`${motion.sequence}-${motion.cardId}-${motion.from}-${motion.to}-${index}`}
+            style={{ "--motion-delay": `${index * 90}ms` } as CSSProperties}
+          >
+            <em>{hitLabel[motion.hit]}</em>
+            <span>{motion.batter ? "타자" : runnerPlaceLabel(motion.from)}</span>
+            <i aria-hidden="true"><u /></i>
+            <strong>{runnerPlaceLabel(motion.to)}</strong>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function playbackDuration(event: ResolutionEvent) {
+  if (event.runnerMotions?.length) return Math.max(1180, 720 + event.runnerMotions.length * 90);
+  return 920;
+}
+
 function PlaybackStage({ event, index, total, running, onSkip }: { event: ResolutionEvent | undefined; index: number; total: number; running: boolean; onSkip: () => void }) {
   if (!event?.snapshot) return null;
   const actingLabel = event.actor === "player" ? "YOU" : event.actor === "cpu" ? "CPU" : "RULE";
@@ -627,8 +701,9 @@ function PlaybackStage({ event, index, total, running, onSkip }: { event: Resolu
     ? event.actor === "player" ? "cpu" : "player"
     : event.kind === "threat" ? event.actor : null;
   const cardFocused = event.kind === "reveal" || event.kind === "ability" || event.kind === "save";
+  const showRunnerMotion = event.kind === "settle" && Boolean(event.runnerMotions?.length);
   return (
-    <section className={`playback-stage actor-${event.actor} playback-${event.kind}`} key={`${index}-${event.title}`} aria-label="현재 카드 처리 연출">
+    <section className={`playback-stage actor-${event.actor} playback-${event.kind} ${showRunnerMotion ? "has-runner-motion" : ""}`} key={`${index}-${event.title}`} aria-label="현재 카드 처리 연출">
       <div className="playback-call">
         <div className="playback-progress"><span style={{ width: `${((index + 1) / total) * 100}%` }} /></div>
         <small>{actingLabel} · STEP {index + 1}/{total}</small>
@@ -636,9 +711,11 @@ function PlaybackStage({ event, index, total, running, onSkip }: { event: Resolu
         <p>{event.detail}</p>
         {running && <button type="button" onClick={onSkip}>연출 건너뛰기</button>}
       </div>
-      <div className={`playback-card-slot ${cardFocused ? "is-focused" : ""}`}>
-        {event.card && <PlayerCard card={event.card} disabled />}
-      </div>
+      {showRunnerMotion
+        ? <RunnerMotionBoard motions={event.runnerMotions!} />
+        : <div className={`playback-card-slot ${cardFocused ? "is-focused" : ""}`}>
+            {event.card && <PlayerCard card={event.card} disabled />}
+          </div>}
       <div className="snapshot-field">
         <SnapshotTeam label="CPU · 홈" side={event.snapshot.cpu} actor="cpu" focused={focusedTeam === "cpu"} />
         <div className="snapshot-divider"><span>처리</span><i>→</i></div>
@@ -704,10 +781,12 @@ export function GamePrototype() {
         setPlaybackIndex(playable[0]);
         setPlaybackRunning(true);
       }, 0));
-      playable.slice(1).forEach((eventIndex, order) => {
-        playbackTimers.current.push(setTimeout(() => setPlaybackIndex(eventIndex), (order + 1) * 920));
+      let elapsed = playbackDuration(game.lastResolution[playable[0]]);
+      playable.slice(1).forEach((eventIndex) => {
+        playbackTimers.current.push(setTimeout(() => setPlaybackIndex(eventIndex), elapsed));
+        elapsed += playbackDuration(game.lastResolution[eventIndex]);
       });
-      playbackTimers.current.push(setTimeout(() => setPlaybackRunning(false), playable.length * 920 + 180));
+      playbackTimers.current.push(setTimeout(() => setPlaybackRunning(false), elapsed + 180));
     }
     return () => {
       playbackTimers.current.forEach(clearTimeout);
@@ -1232,6 +1311,7 @@ export function GamePrototype() {
                 <div className="demote-heading">
                   <p>ROSTER MUST STAY AT 15</p>
                   <h3>마이너로 보낼 선수를 카드 내용까지 비교해 선택하세요</h3>
+                  <span>방출 후보는 방금 끝난 경기에서 사용한 카드 {game.player.played.length}장입니다. 자동 가치 판정 없이 원하는 1장을 직접 선택합니다.</span>
                   <span>선택한 선수는 활성 로스터에서 빠지고, 영입 선수는 다음 덱 맨 위에 놓입니다.</span>
                 </div>
                 <div className="demote-cards">

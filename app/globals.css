@@ -243,6 +243,21 @@ button:focus-visible { outline: 3px solid #f6c969; outline-offset: 3px; }
 .playback-card-slot .player-card { width: 165px; height: 276px; cursor: default; }
 .playback-card-slot.is-focused .player-card { border-color: #f0c475; outline: 3px solid rgba(240,196,117,.3); outline-offset: 4px; }
 .playback-card-slot .card-figure { height: 90px; }.playback-card-slot .ability-box { height: 54px; font-size: 9px; }.playback-card-slot .card-role { top: 45px; }
+.playback-stage.has-runner-motion { grid-template-columns: minmax(210px,.65fr) minmax(270px,.9fr) minmax(490px,1.65fr); }
+.runner-motion-board { position: relative; z-index: 1; align-self: stretch; display: flex; flex-direction: column; justify-content: center; min-width: 0; padding: 12px; border: 1px solid rgba(240,196,117,.32); border-radius: 5px; background: rgba(4,12,15,.55); }
+.runner-motion-heading { display: flex; justify-content: space-between; align-items: center; margin-bottom: 9px; }
+.runner-motion-heading span { color: #f4e6c9; font-size: 11px; font-weight: 900; letter-spacing: .08em; }
+.runner-motion-heading b { padding: 3px 6px; border-radius: 2px; color: #122027; background: #e2b258; font-size: 9px; }
+.runner-motion-list { display: grid; gap: 5px; }
+.runner-motion { --motion-color: var(--runner-average); display: grid; grid-template-columns: 42px 34px minmax(48px,1fr) 34px; align-items: center; gap: 5px; min-height: 28px; padding: 4px 6px; border-left: 3px solid var(--motion-color); background: rgba(255,255,255,.035); }
+.runner-motion.motion-fast { --motion-color: var(--runner-fast); }.runner-motion.motion-average { --motion-color: var(--runner-average); }.runner-motion.motion-slow { --motion-color: var(--runner-slow); }
+.runner-motion em { color: #d7b978; font-size: 8px; font-style: normal; font-weight: 900; }
+.runner-motion span, .runner-motion strong { color: #c8d4d7; font-size: 9px; text-align: center; }
+.runner-motion strong { color: #fff0cf; }
+.runner-motion.is-scoring strong { color: #f6d183; }
+.runner-motion i { position: relative; display: block; height: 2px; background: rgba(255,255,255,.18); }
+.runner-motion i::after { content: "›"; position: absolute; right: -2px; top: -9px; color: #91a2a8; font-size: 15px; font-style: normal; }
+.runner-motion u { position: absolute; left: 0; top: -4px; width: 10px; height: 10px; border: 2px solid #fff0cf; border-radius: 50%; background: var(--motion-color); box-shadow: 0 0 0 2px rgba(0,0,0,.24); text-decoration: none; animation: runner-travel .62s cubic-bezier(.2,.75,.3,1) both; animation-delay: var(--motion-delay); }
 .snapshot-field { position: relative; z-index: 1; display: grid; grid-template-columns: 1fr 40px 1fr; align-items: center; gap: 8px; }
 .snapshot-team { min-width: 0; display: grid; justify-items: center; gap: 5px; padding: 12px 8px; border: 1px solid rgba(255,255,255,.1); border-top: 3px solid #ee7049; border-radius: 5px; background: rgba(4,12,15,.46); }
 .snapshot-player { border-top-color: #55c2aa; }.snapshot-cpu { border-top-color: #ee7049; }
@@ -467,9 +482,15 @@ footer { display: flex; justify-content: space-between; padding: 20px 3px 0; col
 @keyframes card-reveal { from { opacity: .55; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes turn-change { 0% { opacity: 0; transform: translate(-50%, -12px) scale(.97); } 18%,72% { opacity: 1; transform: translate(-50%, 0) scale(1); } 100% { opacity: 0; transform: translate(-50%, -6px) scale(.99); } }
 @keyframes turn-flash { from { transform: translateX(-110%); } to { transform: translateX(110%); } }
+@keyframes runner-travel { from { left: 0; } to { left: calc(100% - 8px); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .runner-motion u { animation: none; left: calc(100% - 8px); }
+}
 
 @media (max-width: 1120px) {
   .playback-stage { grid-template-columns: minmax(190px,.55fr) 155px minmax(430px,1.5fr); gap: 12px; padding: 16px; }
+  .playback-stage.has-runner-motion { grid-template-columns: minmax(190px,.55fr) minmax(250px,.8fr) minmax(430px,1.5fr); }
   .playback-card-slot .player-card { width: 150px; }
   .stadium-board { grid-template-columns: 1fr 1.2fr; }
   .player-dugout { display: none; }
@@ -493,6 +514,8 @@ footer { display: flex; justify-content: space-between; padding: 20px 3px 0; col
   .event-track { grid-auto-columns: minmax(170px, 78vw); }
   .broadcast-call { align-items: flex-start; flex-wrap: wrap; }.broadcast-call em { width: 100%; }
   .playback-stage { grid-template-columns: 1fr; padding: 15px; }
+  .playback-stage.has-runner-motion { grid-template-columns: 1fr; }
+  .runner-motion-board { width: 100%; }
   .playback-call { text-align: center; }.playback-call button { align-self: center; }.playback-progress { width: 100%; }
   .playback-card-slot .player-card { width: 160px; height: 270px; }
   .snapshot-field { width: 100%; grid-template-columns: 1fr 25px 1fr; }
