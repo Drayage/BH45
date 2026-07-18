@@ -26,13 +26,18 @@ test("server-renders the Korean season title and settings", async () => {
   assert.match(html, /리그 설정/);
   assert.match(html, /스타터 덱/);
   assert.match(html, /Big Fly/);
+  assert.match(html, /AI 난이도/);
+  assert.match(html, /어려움/);
+  assert.match(html, /매우 어려움/);
+  assert.match(html, /CPU 스타터 5장을 무작위 FA로 교체/);
   assert.match(html, /시즌 시작/);
   assert.doesNotMatch(html, /codex-preview|react-loading-skeleton/);
 });
 
 test("starter preview assets are removed and card data stays separated", async () => {
-  const [page, packageJson, cards, expansions] = await Promise.all([
+  const [page, prototype, packageJson, cards, expansions] = await Promise.all([
     readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/game-prototype.tsx", import.meta.url), "utf8"),
     readFile(new URL("../package.json", import.meta.url), "utf8"),
     readFile(new URL("../data/base-cards.json", import.meta.url), "utf8").then(JSON.parse),
     readFile(new URL("../data/expansion-cards.json", import.meta.url), "utf8").then(JSON.parse),
@@ -52,4 +57,8 @@ test("starter preview assets are removed and card data stays separated", async (
   assert.ok(cards.every((card) => !card.abilityText || card.abilityTextKo));
   assert.equal(expansions.length, 15);
   assert.ok(expansions.every((card) => card.set === "big_fly" && card.id.startsWith("BF-") && card.abilityTextKo));
+  assert.match(prototype, /hard: \{ label: "어려움", count: 3/);
+  assert.match(prototype, /very_hard: \{ label: "매우 어려움", count: 5/);
+  assert.match(prototype, /const recruits = freeAgents\.slice\(0, count\)/);
+  assert.match(prototype, /freeAgents: freeAgents\.slice\(count\)/);
 });

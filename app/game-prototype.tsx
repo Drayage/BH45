@@ -9,6 +9,7 @@ type Speed = "slow" | "average" | "fast";
 type Hit = "single" | "double" | "triple" | "home_run";
 type ThreatHit = Hit | "walk";
 type ExpansionSet = "big_fly";
+type AiDifficulty = "normal" | "hard" | "very_hard";
 type Screen = "title" | "game";
 
 type Card = {
@@ -113,6 +114,8 @@ type GameState = {
   lastResolution: ResolutionEvent[];
   log: string[];
   enabledExpansions: ExpansionSet[];
+  aiDifficulty: AiDifficulty;
+  cpuStartingFa: Card[];
 };
 
 const baseCards = cardData as Card[];
@@ -141,6 +144,11 @@ const hitLabel: Record<ThreatHit, string> = {
   walk: "볼넷",
 };
 const expansionLabel: Record<ExpansionSet, string> = { big_fly: "Big Fly" };
+const aiDifficultyConfig: Record<AiDifficulty, { label: string; count: number; detail: string }> = {
+  normal: { label: "보통", count: 0, detail: "CPU도 스타터 15장으로 시작" },
+  hard: { label: "어려움", count: 3, detail: "CPU 스타터 3장을 무작위 FA로 교체" },
+  very_hard: { label: "매우 어려움", count: 5, detail: "CPU 스타터 5장을 무작위 FA로 교체" },
+};
 const expansionCatalog = [
   { id: "big_fly" as ExpansionSet, code: "BF", name: "Big Fly", count: 15, ready: true },
   { code: "CO", name: "Coaches", count: 15, ready: false },
@@ -188,23 +196,37 @@ function makeSide(team: string): Side {
   };
 }
 
-function makeGame(playerTeam: string, enabledExpansions: ExpansionSet[] = []): GameState {
+function boostCpuRoster(side: Side, freeAgents: Card[], count: number) {
+  if (!count) return { side, freeAgents, recruits: [] as Card[] };
+  const roster = shuffle([...side.hand, ...side.deck]);
+  const recruits = freeAgents.slice(0, count);
+  const demoted = roster.slice(0, count);
+  const upgraded = shuffle([...recruits, ...roster.slice(count)]);
+  return {
+    side: { ...side, hand: upgraded.slice(0, 6), deck: upgraded.slice(6), minors: [...side.minors, ...demoted] },
+    freeAgents: freeAgents.slice(count),
+    recruits,
+  };
+}
+
+function makeGame(playerTeam: string, enabledExpansions: ExpansionSet[] = [], aiDifficulty: AiDifficulty = "normal"): GameState {
   const rivals = teams.filter((team) => team !== playerTeam);
   const cpuTeam = rivals[Math.floor(Math.random() * rivals.length)];
   const freeAgents = shuffle(cards.filter((card) =>
     card.category === "free_agent" && (card.set === "base" || enabledExpansions.includes(card.set as ExpansionSet)),
   ));
+  const cpuBoost = boostCpuRoster(makeSide(cpuTeam), freeAgents, aiDifficultyConfig[aiDifficulty].count);
   return {
     player: makeSide(playerTeam),
-    cpu: makeSide(cpuTeam),
+    cpu: cpuBoost.side,
     round: 1,
     phase: "setting_on_deck",
     stage: "exhibition",
     gameNumber: 1,
     exhibitionWins: { player: 0, cpu: 0 },
     worldSeriesWins: { player: 0, cpu: 0 },
-    market: freeAgents.slice(0, 6),
-    freeAgentDeck: freeAgents.slice(6),
+    market: cpuBoost.freeAgents.slice(0, 6),
+    freeAgentDeck: cpuBoost.freeAgents.slice(6),
     playerBudget: 0,
     cpuBudget: 0,
     purchaseTurn: null,
@@ -222,9 +244,12 @@ function makeGame(playerTeam: string, enabledExpansions: ExpansionSet[] = []): G
     ],
     log: [
       `${teamLabel[playerTeam]} vs ${teamLabel[cpuTeam]}`,
+      `AI 난이도 ${aiDifficultyConfig[aiDifficulty].label}${cpuBoost.recruits.length ? ` · 시작 FA ${cpuBoost.recruits.map((card) => card.id).join(", ")}` : ""}`,
       "온덱 카드를 준비한 뒤 상대 위협 안타를 막고 내 카드를 냅니다.",
     ],
     enabledExpansions: [...enabledExpansions],
+    aiDifficulty,
+    cpuStartingFa: cpuBoost.recruits,
   };
 }
 
@@ -973,14 +998,18 @@ function ScorePanel({ game }: { game: GameState }) {
 function TitleScreen({
   selectedTeam,
   enabledExpansions,
+  aiDifficulty,
   onTeamChange,
   onExpansionChange,
+  onDifficultyChange,
   onStart,
 }: {
   selectedTeam: string;
   enabledExpansions: ExpansionSet[];
+  aiDifficulty: AiDifficulty;
   onTeamChange: (team: string) => void;
   onExpansionChange: (set: ExpansionSet, enabled: boolean) => void;
+  onDifficultyChange: (difficulty: AiDifficulty) => void;
   onStart: () => void;
 }) {
   const marketCount = baseCards.filter((card) => card.category === "free_agent").length
@@ -1000,7 +1029,7 @@ function TitleScreen({
       <section className="season-setup" aria-label="새 시즌 설정">
         <div className="setup-heading">
           <div><p>NEW SEASON</p><h2>리그 설정</h2></div>
-          <span>스타터 덱과 이번 시즌에 섞을 확장을 선택하세요.</span>
+          <span>스타터 덱, 카드 세트와 CPU 난이도를 선택하세요.</span>
         </div>
 
         <div className="setup-block">
@@ -1033,10 +1062,32 @@ function TitleScreen({
           </div>
         </div>
 
+        <div className="setup-block">
+          <div className="setup-label"><span>03</span><div><b>AI 난이도</b><small>CPU 시작 로스터 보정</small></div></div>
+          <div className="difficulty-options" role="group" aria-label="AI 난이도">
+            {(Object.keys(aiDifficultyConfig) as AiDifficulty[]).map((difficulty) => {
+              const option = aiDifficultyConfig[difficulty];
+              return (
+                <button
+                  type="button"
+                  key={difficulty}
+                  className={aiDifficulty === difficulty ? "is-selected" : ""}
+                  onClick={() => onDifficultyChange(difficulty)}
+                >
+                  <strong>{option.label}</strong>
+                  <span>{option.detail}</span>
+                  <small>{option.count ? `시작 FA ${option.count}장` : "추가 FA 없음"}</small>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
         <div className="season-summary">
           <div><small>내 팀</small><b>{teamCode[selectedTeam]} · {teamLabel[selectedTeam]}</b></div>
+          <div><small>AI 난이도</small><b>{aiDifficultyConfig[aiDifficulty].label} · 시작 FA {aiDifficultyConfig[aiDifficulty].count}장</b></div>
           <div><small>활성 확장</small><b>{enabledExpansions.length ? enabledExpansions.map((set) => expansionLabel[set]).join(", ") : "기본판만"}</b></div>
-          <div><small>FA 카드 풀</small><b>{marketCount}장</b></div>
+          <div><small>시장 대기 카드</small><b>{marketCount - aiDifficultyConfig[aiDifficulty].count}장</b></div>
         </div>
         <button type="button" className="season-start" onClick={onStart}><span>PLAY BALL</span><b>시즌 시작</b><i>→</i></button>
       </section>
@@ -1061,6 +1112,7 @@ function SeasonResult({ game, onRestart, onTitle }: { game: GameState; onRestart
         <p className="result-copy">{won ? "마지막 위협까지 지켜내고 월드 시리즈 정상에 올랐습니다." : "월드 시리즈는 끝났지만 완성한 로스터와 시즌 기록은 남았습니다."}</p>
         <div className="result-stats">
           <div><small>미니 시즌</small><b>{game.exhibitionWins.player}승 {game.exhibitionWins.cpu}패</b></div>
+          <div><small>AI 난이도</small><b>{aiDifficultyConfig[game.aiDifficulty].label} · 시작 FA {game.cpuStartingFa.length}장</b></div>
           <div><small>영입 FA</small><b>{activeFa.length}명</b></div>
           <div><small>마이너 이동</small><b>{game.player.minors.length}명</b></div>
           <div><small>사용 세트</small><b>{game.enabledExpansions.length ? `BASE + ${game.enabledExpansions.map((set) => expansionLabel[set]).join(" + ")}` : "BASE"}</b></div>
@@ -1078,7 +1130,8 @@ export function GamePrototype() {
   const [screen, setScreen] = useState<Screen>("title");
   const [selectedTeam, setSelectedTeam] = useState("San Francisco");
   const [enabledExpansions, setEnabledExpansions] = useState<ExpansionSet[]>([]);
-  const [game, setGame] = useState<GameState>(() => makeGame("San Francisco", []));
+  const [aiDifficulty, setAiDifficulty] = useState<AiDifficulty>("normal");
+  const [game, setGame] = useState<GameState>(() => makeGame("San Francisco", [], "normal"));
   const [showRules, setShowRules] = useState(false);
   const [playbackIndex, setPlaybackIndex] = useState(0);
   const [playbackRunning, setPlaybackRunning] = useState(false);
@@ -1187,12 +1240,12 @@ export function GamePrototype() {
   }
 
   function restart() {
-    setGame(makeGame(selectedTeam, enabledExpansions));
+    setGame(makeGame(selectedTeam, enabledExpansions, aiDifficulty));
     setScreen("game");
   }
 
   function startSeason() {
-    setGame(makeGame(selectedTeam, enabledExpansions));
+    setGame(makeGame(selectedTeam, enabledExpansions, aiDifficulty));
     setScreen("game");
     if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
   }
@@ -1497,8 +1550,10 @@ export function GamePrototype() {
       <TitleScreen
         selectedTeam={selectedTeam}
         enabledExpansions={enabledExpansions}
+        aiDifficulty={aiDifficulty}
         onTeamChange={setSelectedTeam}
         onExpansionChange={setExpansion}
+        onDifficultyChange={setAiDifficulty}
         onStart={startSeason}
       />
     );
@@ -1548,8 +1603,9 @@ export function GamePrototype() {
 
       <section className="game-config-strip" aria-label="현재 시즌 설정">
         <div><small>STARTER</small><b>{teamCode[game.player.team]} · {teamLabel[game.player.team]}</b></div>
+        <div><small>AI LEVEL</small><b>{aiDifficultyConfig[game.aiDifficulty].label} · 시작 FA {game.cpuStartingFa.length}장</b></div>
         <div><small>CARD SETS</small><b>{game.enabledExpansions.length ? `BASE + ${game.enabledExpansions.map((set) => expansionLabel[set]).join(" + ")}` : "BASE ONLY"}</b></div>
-        <span>시즌 설정은 타이틀에서 변경할 수 있습니다.</span>
+        <span>{game.cpuStartingFa.length ? `CPU 시작 보강 · ${game.cpuStartingFa.map((card) => card.id).join(" · ")}` : "CPU 추가 FA 없음 · 시즌 설정은 타이틀에서 변경"}</span>
       </section>
 
       <section className="series-strip" aria-label="시리즈 진행 상황">
