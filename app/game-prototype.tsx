@@ -27,7 +27,7 @@ type Card = {
 type Runner = { cardId: string; speed: Speed };
 type RunnerMotion = {
   sequence: number;
-  hit: ThreatHit;
+  hit: ThreatHit | "ability";
   cardId: string;
   speed: Speed;
   from: 0 | 1 | 2 | 3;
@@ -57,6 +57,14 @@ type ResolutionEvent = {
   card?: Card;
   snapshot?: ResolutionSnapshot;
   runnerMotions?: RunnerMotion[];
+  abilityTriggered?: boolean;
+};
+
+type MarketActivity = {
+  buyer: "player" | "cpu";
+  recruit: Card;
+  demote: Card;
+  replacement: Card | null;
 };
 
 type VisualSide = {
@@ -80,7 +88,7 @@ type GameState = {
   player: Side;
   cpu: Side;
   round: number;
-  phase: "setting_on_deck" | "playing" | "buying" | "series_finished";
+  phase: "setting_on_deck" | "playing" | "visitor_save" | "buying" | "series_finished";
   stage: "exhibition" | "world_series";
   gameNumber: number;
   exhibitionWins: { player: number; cpu: number };
@@ -92,6 +100,9 @@ type GameState = {
   purchaseTurn: "player" | "cpu" | null;
   cpuBought: boolean;
   pendingPurchaseId: string | null;
+  marketActivity: MarketActivity[];
+  newMarketIds: string[];
+  marketUpdateKey: number;
   selectedId: string | null;
   resolutionKey: number;
   lastResolution: ResolutionEvent[];
@@ -176,6 +187,9 @@ function makeGame(playerTeam: string): GameState {
     purchaseTurn: null,
     cpuBought: false,
     pendingPurchaseId: null,
+    marketActivity: [],
+    newMarketIds: [],
+    marketUpdateKey: 0,
     selectedId: null,
     resolutionKey: 0,
     lastResolution: [
@@ -285,17 +299,52 @@ function advanceHit(side: Side, hit: ThreatHit, source: Card | undefined) {
 }
 
 function removeRunner(side: Side, count: number, allowFast = true) {
+  let removed = 0;
   for (let base = 2; base >= 0 && count > 0; base -= 1) {
     const runner = side.bases[base];
     if (runner && (allowFast || runner.speed !== "fast")) {
       side.bases[base] = null;
       count -= 1;
+      removed += 1;
     }
   }
+  return removed;
+}
+
+function advanceStealRunners(side: Side) {
+  const motions: RunnerMotion[] = [];
+  const next = [...side.bases];
+  let scored = 0;
+
+  for (let base = 2; base >= 0; base -= 1) {
+    const runner = next[base];
+    if (!runner || runner.speed === "slow") continue;
+    if (base === 2) {
+      next[base] = null;
+      side.score += 1;
+      scored += 1;
+      motions.push({ ...runner, sequence: motions.length, hit: "ability", from: 3, to: "score" });
+      continue;
+    }
+    if (next[base + 1]) continue;
+    next[base] = null;
+    next[base + 1] = runner;
+    motions.push({
+      ...runner,
+      sequence: motions.length,
+      hit: "ability",
+      from: (base + 1) as 1 | 2,
+      to: (base + 2) as 2 | 3,
+    });
+  }
+
+  side.bases = next;
+  return { motions, scored };
 }
 
 function reduceHits(hits: ThreatHit[]) {
   return hits.flatMap<ThreatHit>((hit) => {
+    if (hit === "walk") return ["walk"];
     if (hit === "home_run") return ["triple"];
     if (hit === "triple") return ["double"];
     if (hit === "double") return ["single"];
@@ -322,7 +371,8 @@ function applyAbility(
 ) {
   const text = card.abilityText?.toLowerCase() ?? "";
   const events = applyDefensiveAbility(card, acting, opposing, opposingLast);
-  if (!text) return events;
+  const runnerMotions: RunnerMotion[] = [];
+  if (!text) return { events, runnerMotions };
 
   const granted = parseGrantedHit(text);
   const onScoringBase = Boolean(acting.bases[1] || acting.bases[2]);
@@ -341,7 +391,15 @@ function applyAbility(
     events.push(`랠리가 ${hitLabel[granted]}를 추가했습니다.`);
   }
 
-  return events;
+  if (text.includes("stolen base")) {
+    const steal = advanceStealRunners(acting);
+    runnerMotions.push(...steal.motions);
+    if (steal.motions.length) {
+      events.push(`도루로 보통·빠른 주자 ${steal.motions.length}명이 1베이스 진루${steal.scored ? `, ${steal.scored}득점` : ""}했습니다.`);
+    }
+  }
+
+  return { events, runnerMotions };
 }
 
 function applyDefensiveAbility(card: Card, acting: Side, opposing: Side, opposingLast: Card | undefined) {
@@ -349,39 +407,39 @@ function applyDefensiveAbility(card: Card, acting: Side, opposing: Side, opposin
   const events: string[] = [];
   if (!text) return events;
 
-  if (text.includes("magna glove")) {
-    opposing.pending.splice(0, 2);
-    events.push("마그나 글러브로 위협 안타 2개를 지웠습니다.");
-  } else if (text.includes("glove")) {
+  if (text.includes("magna glove") && opposing.pending.length) {
+    const removed = opposing.pending.splice(0, 2).length;
+    events.push(`마그나 글러브로 위협 안타 ${removed}개를 지웠습니다.`);
+  } else if (text.includes("glove") && opposing.pending.length) {
     opposing.pending.splice(0, 1);
     events.push("글러브로 위협 안타 1개를 지웠습니다.");
   }
 
   if (text.includes("pick off")) {
-    removeRunner(opposing, text.includes("all") ? 3 : 1);
-    events.push("견제로 주자를 제거했습니다.");
+    const removed = removeRunner(opposing, text.includes("all") ? 3 : 1);
+    if (removed) events.push(`견제로 주자 ${removed}명을 제거했습니다.`);
   }
   if (text.includes("double play")) {
-    removeRunner(opposing, 2, false);
-    events.push("병살로 빠르지 않은 주자를 최대 2명 제거했습니다.");
+    const removed = removeRunner(opposing, 2, false);
+    if (removed) events.push(`병살로 빠르지 않은 주자 ${removed}명을 제거했습니다.`);
   }
-  if (text.includes("fastball") && opposingLast?.type === "natural") {
+  if (text.includes("fastball") && opposingLast?.type === "natural" && opposing.pending.length) {
     opposing.pending = [];
     events.push("패스트볼이 내추럴의 위협 안타를 모두 취소했습니다.");
   }
-  if (text.includes("curve") && opposingLast?.type === "robot") {
+  if (text.includes("curve") && opposingLast?.type === "robot" && opposing.pending.length) {
     opposing.pending = [];
     events.push("커브가 로봇의 위협 안타를 모두 취소했습니다.");
   }
-  if (text.includes("spit ball") && opposingLast?.type === "cyborg") {
+  if (text.includes("spit ball") && opposingLast?.type === "cyborg" && opposing.pending.length) {
     opposing.pending = [];
     events.push("스핏볼이 사이보그의 위협 안타를 모두 취소했습니다.");
   }
-  if (text.includes("knuckle ball")) {
+  if (text.includes("knuckle ball") && opposing.pending.some((hit) => hit !== "walk")) {
     opposing.pending = reduceHits(opposing.pending);
     events.push("너클볼이 모든 위협 안타를 1베이스 줄였습니다.");
   }
-  if (text.startsWith("walk:")) {
+  if (text.startsWith("walk:") && opposing.pending.some((hit) => hit !== "walk")) {
     opposing.pending = opposing.pending.map(() => "walk");
     events.push("위협 안타가 볼넷으로 바뀌었습니다.");
   }
@@ -399,15 +457,11 @@ function settlePending(side: Side, source: Card | undefined) {
   return { hits, runnerMotions };
 }
 
-function commitPending(side: Side, source: Card | undefined) {
-  return settlePending(side, source).hits;
-}
-
 function playOne(card: Card, acting: Side, opposing: Side) {
   const opposingLast = opposing.played.at(-1);
   const revealFrame: MoveFrame = { acting: visualSide(acting), opposing: visualSide(opposing) };
   acting.pendingSpeed = card.speed;
-  const events = applyAbility(card, acting, opposing, opposingLast, acting.played.length);
+  const ability = applyAbility(card, acting, opposing, opposingLast, acting.played.length);
   const abilityFrame: MoveFrame = { acting: visualSide(acting), opposing: visualSide(opposing) };
   const settlement = settlePending(opposing, opposingLast);
   const settled = settlement.hits;
@@ -419,7 +473,8 @@ function playOne(card: Card, acting: Side, opposing: Side) {
   if (acting.pending.length) acting.pendingSpeed = card.speed;
   const threatFrame: MoveFrame = { acting: visualSide(acting), opposing: visualSide(opposing) };
   return {
-    events,
+    events: ability.events,
+    abilityMotions: ability.runnerMotions,
     settled,
     runnerMotions: settlement.runnerMotions,
     frames: { reveal: revealFrame, ability: abilityFrame, settle: settleFrame, threat: threatFrame },
@@ -476,11 +531,12 @@ function drawExtraInnings(side: Side) {
 }
 
 function replenishMarket(market: Card[], freeAgentDeck: Card[], purchasedId: string) {
+  const purchasedIndex = market.findIndex((card) => card.id === purchasedId);
   const nextMarket = market.filter((card) => card.id !== purchasedId);
   const nextDeck = [...freeAgentDeck];
   const replacement = nextDeck.shift();
-  if (replacement) nextMarket.push(replacement);
-  return { market: nextMarket, freeAgentDeck: nextDeck };
+  if (replacement) nextMarket.splice(Math.max(0, purchasedIndex), 0, replacement);
+  return { market: nextMarket, freeAgentDeck: nextDeck, replacement: replacement ?? null };
 }
 
 function cardValue(card: Card) {
@@ -496,6 +552,7 @@ function runCpuBuy(cpuInput: Side, marketInput: Card[], freeAgentDeckInput: Card
   let freeAgentDeck = [...freeAgentDeckInput];
   let budget = budgetInput;
   const purchases: string[] = [];
+  const activities: MarketActivity[] = [];
 
   while (cpu.played.length && market.some((card) => (card.cost ?? 999) <= budget)) {
     const affordable = market
@@ -511,9 +568,10 @@ function runCpuBuy(cpuInput: Side, marketInput: Card[], freeAgentDeckInput: Card
     market = replenished.market;
     freeAgentDeck = replenished.freeAgentDeck;
     purchases.push(`${recruit.id} 영입 / ${demote.id} 마이너`);
+    activities.push({ buyer: "cpu", recruit, demote, replacement: replenished.replacement });
   }
 
-  return { cpu, market, freeAgentDeck, budget, purchases };
+  return { cpu, market, freeAgentDeck, budget, purchases, activities };
 }
 
 function miniGameWinner(player: Side, cpu: Side): "player" | "cpu" | "tie" {
@@ -526,6 +584,104 @@ function activeRoster(side: Side) {
   return [...side.deck, ...side.discard, ...side.hand, ...side.played, ...(side.onDeck ? [side.onDeck] : [])];
 }
 
+function finishMiniGame(
+  current: GameState,
+  player: Side,
+  cpu: Side,
+  resolution: ResolutionEvent[],
+  log: string[],
+): GameState {
+  if (player.score === cpu.score) {
+    drawExtraInnings(player);
+    drawExtraInnings(cpu);
+    log.push("동점 · 양 팀이 3장씩 뽑아 연장전에 들어갑니다.");
+    return {
+      ...current,
+      player,
+      cpu,
+      round: current.round + 1,
+      phase: "playing",
+      selectedId: null,
+      resolutionKey: current.resolutionKey + 1,
+      lastResolution: resolution,
+      log,
+    };
+  }
+
+  const winner = miniGameWinner(player, cpu);
+  const exhibitionWins = { ...current.exhibitionWins };
+  const worldSeriesWins = { ...current.worldSeriesWins };
+  if (current.stage === "exhibition") exhibitionWins[winner as "player" | "cpu"] += 1;
+  else worldSeriesWins[winner as "player" | "cpu"] += 1;
+
+  if (current.stage === "world_series" && Math.max(worldSeriesWins.player, worldSeriesWins.cpu) >= 4) {
+    log.push(`${worldSeriesWins.player > worldSeriesWins.cpu ? "월드 시리즈 우승!" : "월드 시리즈 준우승"} · ${worldSeriesWins.player}-${worldSeriesWins.cpu}`);
+    return {
+      ...current,
+      player,
+      cpu,
+      phase: "series_finished",
+      exhibitionWins,
+      worldSeriesWins,
+      playerBudget: player.revenue,
+      cpuBudget: cpu.revenue,
+      selectedId: null,
+      resolutionKey: current.resolutionKey + 1,
+      lastResolution: resolution,
+      log,
+    };
+  }
+
+  let market = [...current.market];
+  let freeAgentDeck = [...current.freeAgentDeck];
+  let nextCpu = cpu;
+  let cpuBudget = cpu.revenue;
+  let marketActivity: MarketActivity[] = [];
+  const firstBuyer = player.revenue < cpu.revenue ? "player" : "cpu";
+
+  if (firstBuyer === "cpu") {
+    const cpuBuy = runCpuBuy(cpu, market, freeAgentDeck, cpuBudget);
+    nextCpu = cpuBuy.cpu;
+    market = cpuBuy.market;
+    freeAgentDeck = cpuBuy.freeAgentDeck;
+    cpuBudget = cpuBuy.budget;
+    marketActivity = cpuBuy.activities;
+    cpuBuy.purchases.forEach((purchase) => log.push(`CPU 구매 · ${purchase}`));
+  }
+  log.push(`구매 라운드 · 내 예산 ${player.revenue}, CPU 예산 ${cpu.revenue}`);
+
+  return {
+    ...current,
+    player,
+    cpu: nextCpu,
+    phase: "buying",
+    exhibitionWins,
+    worldSeriesWins,
+    market,
+    freeAgentDeck,
+    playerBudget: player.revenue,
+    cpuBudget,
+    purchaseTurn: "player",
+    cpuBought: firstBuyer === "cpu",
+    pendingPurchaseId: null,
+    marketActivity,
+    newMarketIds: marketActivity.flatMap((activity) => activity.replacement ? [activity.replacement.id] : []),
+    marketUpdateKey: current.marketUpdateKey + 1,
+    selectedId: null,
+    resolutionKey: current.resolutionKey + 1,
+    lastResolution: [
+      ...resolution,
+      {
+        kind: "buy",
+        actor: "system",
+        title: "구매 라운드",
+        detail: `내 예산 ${player.revenue} · CPU 예산 ${cpu.revenue}${marketActivity.length ? ` · CPU ${marketActivity.length}명 영입 완료` : ""}`,
+      },
+    ],
+    log,
+  };
+}
+
 function moveEvents(actor: "player" | "cpu", card: Card, move: ReturnType<typeof playOne>): ResolutionEvent[] {
   const who = actor === "player" ? "내 카드" : "CPU 카드";
   const threatened = card.hits.length ? card.hits.map((hit) => hitLabel[hit]).join(" + ") : "위협 안타 없음";
@@ -535,9 +691,15 @@ function moveEvents(actor: "player" | "cpu", card: Card, move: ReturnType<typeof
       kind: "ability",
       actor,
       title: "즉시 능력 처리",
-      detail: move.events.length ? move.events.join(" ") : (card.abilityTextKo ?? "발동할 즉시 능력이 없습니다."),
+      detail: move.events.length
+        ? move.events.join(" ")
+        : card.abilityText
+          ? `조건이 맞지 않아 발동하지 않았습니다. · ${card.abilityTextKo}`
+          : "발동할 즉시 능력이 없습니다.",
       card,
       snapshot: orientFrame(actor, move.frames.ability),
+      runnerMotions: move.abilityMotions,
+      abilityTriggered: move.events.length > 0,
     },
     {
       kind: "settle",
@@ -581,11 +743,34 @@ function ResolutionConsole({ game, activeIndex, running }: { game: GameState; ac
   );
 }
 
-function PlayerCard({ card, selected, disabled, onClick }: { card: Card; selected?: boolean; disabled?: boolean; onClick?: () => void }) {
+function abilityIsActive(card: Card, acting: Side, opposing: Side) {
+  const text = card.abilityText?.toLowerCase() ?? "";
+  const opposingLast = opposing.played.at(-1);
+  if (!text) return false;
+  if (text.includes("glove")) return opposing.pending.length > 0;
+  if (text.includes("pick off")) return opposing.bases.some(Boolean);
+  if (text.includes("double play")) return opposing.bases.some((runner) => runner && runner.speed !== "fast");
+  if (text.includes("fastball")) return opposing.pending.length > 0 && opposingLast?.type === "natural";
+  if (text.includes("curve")) return opposing.pending.length > 0 && opposingLast?.type === "robot";
+  if (text.includes("spit ball")) return opposing.pending.length > 0 && opposingLast?.type === "cyborg";
+  if (text.includes("knuckle ball")) return opposing.pending.some((hit) => hit !== "walk");
+  if (text.startsWith("walk:")) return opposing.pending.some((hit) => hit !== "walk");
+  if (text.includes("quick eye")) return opposingLast?.type === "cyborg";
+  if (text.includes("clutch")) return Boolean(acting.bases[1] || acting.bases[2]);
+  if (text.includes("leadoff")) return acting.played.length === 0;
+  if (text.includes("rally")) return acting.score < opposing.score;
+  if (text.includes("stolen base")) {
+    const preview = cloneSide(acting);
+    return advanceStealRunners(preview).motions.length > 0;
+  }
+  return false;
+}
+
+function PlayerCard({ card, selected, disabled, abilityActive, onClick }: { card: Card; selected?: boolean; disabled?: boolean; abilityActive?: boolean; onClick?: () => void }) {
   return (
     <button
       type="button"
-      className={`player-card type-${card.type} card-speed-${card.speed} ${selected ? "is-selected" : ""}`}
+      className={`player-card type-${card.type} card-speed-${card.speed} ${selected ? "is-selected" : ""} ${abilityActive ? "has-live-ability" : ""}`}
       onClick={onClick}
       disabled={disabled}
       aria-pressed={selected}
@@ -603,7 +788,10 @@ function PlayerCard({ card, selected, disabled, onClick }: { card: Card; selecte
         <span className="figure-bat" />
       </span>
       <span className="type-ribbon">{typeLabel[card.type]}</span>
-      <span className="ability-box" title={card.abilityText ?? undefined}>{card.abilityTextKo ?? "기본 능력 없음"}</span>
+      <span className={`ability-box ${abilityActive ? "is-live" : ""}`} title={card.abilityText ?? undefined}>
+        {abilityActive && <b>발동 가능</b>}
+        {card.abilityTextKo ?? "기본 능력 없음"}
+      </span>
       <span className="hit-row">
         {card.hits.length ? card.hits.map((hit, index) => <em key={`${hit}-${index}`}>{hitLabel[hit]}</em>) : <em className="no-hit">—</em>}
       </span>
@@ -689,7 +877,7 @@ function PlaybackStage({ event, index, total, running, onSkip }: { event: Resolu
   const actingLabel = event.actor === "player" ? "내 카드" : event.actor === "cpu" ? "상대 카드" : "규칙";
   const focusedTeam = event.kind === "settle"
     ? event.actor === "player" ? "cpu" : "player"
-    : event.kind === "threat" ? event.actor : null;
+    : event.kind === "threat" || (event.kind === "ability" && event.runnerMotions?.length) ? event.actor : null;
   const cardFocused = event.kind === "reveal" || event.kind === "ability" || event.kind === "save";
   return (
     <section className={`playback-stage actor-${event.actor} playback-${event.kind}`} key={`${index}-${event.title}`} aria-label="현재 카드 처리 연출">
@@ -702,7 +890,7 @@ function PlaybackStage({ event, index, total, running, onSkip }: { event: Resolu
       </div>
       <div className={`playback-card-slot ${cardFocused ? "is-focused" : ""}`}>
         {event.card && <span className={`card-owner-label owner-${event.actor}`}>{event.actor === "player" ? "내가 낸 카드" : "상대가 낸 카드"}</span>}
-        {event.card && <PlayerCard card={event.card} disabled />}
+        {event.card && <PlayerCard card={event.card} disabled abilityActive={(event.kind === "ability" || event.kind === "save") && event.abilityTriggered} />}
       </div>
       <div className="snapshot-field">
         <SnapshotTeam label="CPU · 홈" side={event.snapshot.cpu} actor="cpu" focused={focusedTeam === "cpu"} motions={focusedTeam === "cpu" ? event.runnerMotions : undefined} />
@@ -722,7 +910,7 @@ function ScorePanel({ game }: { game: GameState }) {
       </div>
       <div className="inning-cell">
         <small>{game.stage === "exhibition" ? `EXHIBITION ${game.gameNumber}/3` : `WORLD SERIES ${game.gameNumber}`}</small>
-        <b>{game.phase === "playing" ? `${game.round} / 6` : game.phase === "setting_on_deck" ? "ON DECK" : game.phase === "buying" ? "BUY" : "FINAL"}</b>
+        <b>{game.phase === "playing" ? `${game.round} / 6` : game.phase === "setting_on_deck" ? "ON DECK" : game.phase === "visitor_save" ? "SAVE" : game.phase === "buying" ? "BUY" : "FINAL"}</b>
       </div>
       <div className="score-team home-score">
         <strong key={`player-score-${game.player.score}`}>{game.player.score}</strong>
@@ -743,7 +931,10 @@ export function GamePrototype() {
   const turnTransitionTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const playbackAnchorRef = useRef<HTMLDivElement>(null);
   const handAnchorRef = useRef<HTMLElement>(null);
+  const visitorSaveAnchorRef = useRef<HTMLElement>(null);
+  const marketAnchorRef = useRef<HTMLElement>(null);
   const previousPlaybackRunning = useRef(false);
+  const previousMarketUpdateKey = useRef(game.marketUpdateKey);
   const turnWasRunning = useRef(false);
   const previousPlaybackActor = useRef<"player" | "cpu" | null>(null);
 
@@ -809,13 +1000,27 @@ export function GamePrototype() {
     const wasRunning = previousPlaybackRunning.current;
     previousPlaybackRunning.current = playbackRunning;
     if (game.resolutionKey === 0 || typeof window === "undefined" || !window.matchMedia("(max-width: 760px)").matches) return;
-    const target = playbackRunning ? playbackAnchorRef.current : wasRunning ? handAnchorRef.current : null;
+    const restingTarget = game.phase === "buying"
+      ? marketAnchorRef.current
+      : game.phase === "visitor_save"
+        ? visitorSaveAnchorRef.current
+        : handAnchorRef.current;
+    const target = playbackRunning ? playbackAnchorRef.current : wasRunning ? restingTarget : null;
     if (!target) return;
     const timer = window.setTimeout(() => {
       target.scrollIntoView({ behavior: "smooth", block: "start" });
     }, playbackRunning ? 90 : 180);
     return () => window.clearTimeout(timer);
-  }, [game.resolutionKey, playbackRunning]);
+  }, [game.phase, game.resolutionKey, playbackRunning]);
+
+  useEffect(() => {
+    const changed = previousMarketUpdateKey.current !== game.marketUpdateKey;
+    previousMarketUpdateKey.current = game.marketUpdateKey;
+    if (!changed || game.phase !== "buying" || game.lastResolution.some((event) => event.snapshot) || typeof window === "undefined") return;
+    if (!window.matchMedia("(max-width: 760px)").matches) return;
+    const timer = window.setTimeout(() => marketAnchorRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 120);
+    return () => window.clearTimeout(timer);
+  }, [game.lastResolution, game.marketUpdateKey, game.phase]);
 
   function skipPlayback() {
     playbackTimers.current.forEach(clearTimeout);
@@ -861,6 +1066,7 @@ export function GamePrototype() {
 
   function playRound(cardId: string, pinchSource: "on_deck" | "lineup" | null = null) {
     if (game.phase !== "playing" || playbackRunning) return;
+    setPlaybackRunning(true);
     setGame((current) => {
       const player = cloneSide(current.player);
       const cpu = cloneSide(current.cpu);
@@ -905,123 +1111,16 @@ export function GamePrototype() {
       ];
 
       if (finished) {
-        if (player.deck.length === 0 && player.discard.length) {
-          player.deck = shuffle(player.discard);
-          player.discard = [];
-        }
-        const saveFromOnDeck = Boolean(player.onDeck);
-        const saveCard = player.onDeck ?? player.deck.shift();
-        player.onDeck = null;
-        if (saveCard) {
-          const saveEvents = applyDefensiveAbility(saveCard, player, cpu, cpu.played.at(-1));
-          player.discard.push(saveCard);
-          resolution.push({
-            kind: "save",
-            actor: "player",
-            title: "비지터 세이브",
-            detail: saveEvents.length
-              ? `${saveFromOnDeck ? "온덱" : "라인업 맨 위"} ${saveCard.id} 공개 · ${saveEvents.join(" ")}`
-              : `${saveFromOnDeck ? "온덱" : "라인업 맨 위"} ${saveCard.id} 공개 · 적용 가능한 수비 능력이 없습니다.`,
-            card: saveCard,
-            snapshot: snapshotSides(player, cpu),
-          });
-          log.push(`비지터 세이브 · ${saveFromOnDeck ? "온덱" : "라인업"} ${saveCard.id} ${saveEvents.join(" ") || "수비 효과 없음"}`);
-        }
-        const finalCpu = commitPending(cpu, cpu.played.at(-1));
-        resolution.push({
-          kind: "settle",
-          actor: "cpu",
-          title: "홈팀 마지막 위협 확정",
-          detail: finalCpu.length ? finalCpu.map((hit) => hitLabel[hit]).join(" + ") : "모든 위협을 막았습니다.",
-          snapshot: snapshotSides(player, cpu),
-        });
-        if (finalCpu.length) log.push(`경기 종료 · 상대 마지막 ${finalCpu.map((hit) => hitLabel[hit]).join(", ")} 확정`);
-        log.push(`FINAL ${teamCode[player.team]} ${player.score} : ${cpu.score} ${teamCode[cpu.team]}`);
-
-        if (player.score === cpu.score) {
-          drawExtraInnings(player);
-          drawExtraInnings(cpu);
-          log.push("동점 · 양 팀이 3장씩 뽑아 연장전에 들어갑니다.");
-          return {
-            ...current,
-            player,
-            cpu,
-            round: current.round + 1,
-            phase: "playing",
-            selectedId: null,
-            resolutionKey: current.resolutionKey + 1,
-            lastResolution: resolution,
-            log,
-          };
-        }
-
-        const winner = miniGameWinner(player, cpu);
-        const exhibitionWins = { ...current.exhibitionWins };
-        const worldSeriesWins = { ...current.worldSeriesWins };
-        if (current.stage === "exhibition") exhibitionWins[winner as "player" | "cpu"] += 1;
-        else worldSeriesWins[winner as "player" | "cpu"] += 1;
-
-        if (current.stage === "world_series" && Math.max(worldSeriesWins.player, worldSeriesWins.cpu) >= 4) {
-          log.push(`${worldSeriesWins.player > worldSeriesWins.cpu ? "월드 시리즈 우승!" : "월드 시리즈 준우승"} · ${worldSeriesWins.player}-${worldSeriesWins.cpu}`);
-          return {
-            ...current,
-            player,
-            cpu,
-            round: current.round,
-            phase: "series_finished",
-            exhibitionWins,
-            worldSeriesWins,
-            playerBudget: player.revenue,
-            cpuBudget: cpu.revenue,
-            selectedId: null,
-            resolutionKey: current.resolutionKey + 1,
-            lastResolution: resolution,
-            log,
-          };
-        }
-
-        let market = [...current.market];
-        let freeAgentDeck = [...current.freeAgentDeck];
-        let nextCpu = cpu;
-        let cpuBudget = cpu.revenue;
-        const firstBuyer = player.revenue < cpu.revenue
-          ? "player"
-          : cpu.revenue < player.revenue
-            ? "cpu"
-            : winner === "player" ? "cpu" : "player";
-
-        if (firstBuyer === "cpu") {
-          const cpuBuy = runCpuBuy(cpu, market, freeAgentDeck, cpuBudget);
-          nextCpu = cpuBuy.cpu;
-          market = cpuBuy.market;
-          freeAgentDeck = cpuBuy.freeAgentDeck;
-          cpuBudget = cpuBuy.budget;
-          cpuBuy.purchases.forEach((purchase) => log.push(`CPU 구매 · ${purchase}`));
-        }
-        log.push(`구매 라운드 · 내 예산 ${player.revenue}, CPU 예산 ${cpu.revenue}`);
-
         return {
           ...current,
           player,
-          cpu: nextCpu,
+          cpu,
           round: current.round,
-          phase: "buying",
-          exhibitionWins,
-          worldSeriesWins,
-          market,
-          freeAgentDeck,
-          playerBudget: player.revenue,
-          cpuBudget,
-          purchaseTurn: "player",
-          cpuBought: firstBuyer === "cpu",
-          pendingPurchaseId: null,
+          phase: "visitor_save",
           selectedId: null,
           resolutionKey: current.resolutionKey + 1,
-          lastResolution: [
-            ...resolution,
-            { kind: "buy", actor: "system", title: "구매 라운드", detail: `내 예산 ${player.revenue} · CPU 예산 ${cpu.revenue}` },
-          ],
-          log,
+          lastResolution: resolution,
+          log: [...log, "홈팀 마지막 위협 대기 · 비지터 세이브 선택"],
         };
       }
 
@@ -1039,7 +1138,78 @@ export function GamePrototype() {
     });
   }
 
+  function resolveVisitorSave(source: "on_deck" | "lineup" | null) {
+    if (playbackRunning) return;
+    setPlaybackRunning(true);
+    setGame((current) => {
+      if (current.phase !== "visitor_save") return current;
+      const player = cloneSide(current.player);
+      const cpu = cloneSide(current.cpu);
+      const resolution: ResolutionEvent[] = [];
+      const log = [...current.log];
+      let saveCard: Card | null = null;
+      let sourceLabel = "사용 안 함";
+
+      if (source === "on_deck") {
+        if (!player.onDeck) return current;
+        saveCard = player.onDeck;
+        player.onDeck = null;
+        sourceLabel = "온덱";
+      } else if (source === "lineup") {
+        if (player.deck.length === 0 && player.discard.length) {
+          player.deck = shuffle(player.discard);
+          player.discard = [];
+        }
+        saveCard = player.deck.shift() ?? null;
+        if (!saveCard) return current;
+        sourceLabel = "라인업 맨 위";
+      }
+
+      if (saveCard) {
+        const saveEvents = applyDefensiveAbility(saveCard, player, cpu, cpu.played.at(-1));
+        player.discard.push(saveCard);
+        resolution.push({
+          kind: "save",
+          actor: "player",
+          title: "비지터 세이브",
+          detail: saveEvents.length
+            ? `${sourceLabel} ${saveCard.id} 공개 · ${saveEvents.join(" ")}`
+            : `${sourceLabel} ${saveCard.id} 공개 · 적용 가능한 수비 즉시 능력이 없습니다.`,
+          card: saveCard,
+          snapshot: snapshotSides(player, cpu),
+          abilityTriggered: saveEvents.length > 0,
+        });
+        log.push(`비지터 세이브 · ${sourceLabel} ${saveCard.id} ${saveEvents.join(" ") || "수비 효과 없음"}`);
+      } else {
+        resolution.push({
+          kind: "save",
+          actor: "player",
+          title: "비지터 세이브 사용 안 함",
+          detail: "카드를 공개하지 않고 홈팀의 남은 위협 안타를 처리합니다.",
+          snapshot: snapshotSides(player, cpu),
+        });
+        log.push("비지터 세이브 · 사용 안 함");
+      }
+
+      const finalSettlement = settlePending(cpu, cpu.played.at(-1));
+      resolution.push({
+        kind: "settle",
+        actor: "cpu",
+        title: "홈팀 마지막 위협 확정",
+        detail: finalSettlement.hits.length
+          ? `${finalSettlement.hits.map((hit) => hitLabel[hit]).join(" + ")}를 베이스에 반영했습니다.`
+          : "모든 위협을 막았습니다.",
+        snapshot: snapshotSides(player, cpu),
+        runnerMotions: finalSettlement.runnerMotions,
+      });
+      if (finalSettlement.hits.length) log.push(`경기 종료 · 상대 마지막 ${finalSettlement.hits.map((hit) => hitLabel[hit]).join(", ")} 확정`);
+      log.push(`FINAL ${teamCode[player.team]} ${player.score} : ${cpu.score} ${teamCode[cpu.team]}`);
+      return finishMiniGame(current, player, cpu, resolution, log);
+    });
+  }
+
   function selectFreeAgent(cardId: string) {
+    if (playbackRunning) return;
     setGame((current) => {
       if (current.phase !== "buying" || current.purchaseTurn !== "player") return current;
       const card = current.market.find((item) => item.id === cardId);
@@ -1049,6 +1219,7 @@ export function GamePrototype() {
   }
 
   function sendToMinors(cardId: string) {
+    if (playbackRunning) return;
     setGame((current) => {
       if (current.phase !== "buying" || !current.pendingPurchaseId) return current;
       const recruit = current.market.find((card) => card.id === current.pendingPurchaseId);
@@ -1059,6 +1230,7 @@ export function GamePrototype() {
       player.played = player.played.filter((card) => card.id !== demote.id);
       player.minors.push(demote);
       const replenished = replenishMarket(current.market, current.freeAgentDeck, recruit.id);
+      const activity: MarketActivity = { buyer: "player", recruit, demote, replacement: replenished.replacement };
       return {
         ...current,
         player,
@@ -1066,6 +1238,9 @@ export function GamePrototype() {
         freeAgentDeck: replenished.freeAgentDeck,
         playerBudget: current.playerBudget - (recruit.cost ?? 0),
         pendingPurchaseId: null,
+        marketActivity: [...current.marketActivity, activity],
+        newMarketIds: replenished.replacement ? [replenished.replacement.id] : [],
+        marketUpdateKey: current.marketUpdateKey + 1,
         resolutionKey: current.resolutionKey + 1,
         lastResolution: [
           { kind: "buy", actor: "player", title: `${recruit.id} 영입 완료`, detail: `${demote.id} 마이너 이동 · 새 선수는 다음 덱 맨 위` },
@@ -1077,23 +1252,41 @@ export function GamePrototype() {
   }
 
   function finishBuyRound() {
+    if (playbackRunning) return;
     setGame((current) => {
       if (current.phase !== "buying") return current;
-      const player = cloneSide(current.player);
-      let cpu = cloneSide(current.cpu);
-      let market = [...current.market];
-      let freeAgentDeck = [...current.freeAgentDeck];
-      let cpuBudget = current.cpuBudget;
-      const log = [...current.log];
 
       if (!current.cpuBought) {
-        const cpuBuy = runCpuBuy(cpu, market, freeAgentDeck, cpuBudget);
-        cpu = cpuBuy.cpu;
-        market = cpuBuy.market;
-        freeAgentDeck = cpuBuy.freeAgentDeck;
-        cpuBudget = cpuBuy.budget;
+        const cpuBuy = runCpuBuy(current.cpu, current.market, current.freeAgentDeck, current.cpuBudget);
+        const log = [...current.log];
         cpuBuy.purchases.forEach((purchase) => log.push(`CPU 구매 · ${purchase}`));
+        if (!cpuBuy.purchases.length) log.push("CPU 구매 · 영입 가능한 선수가 없어 패스");
+        return {
+          ...current,
+          cpu: cpuBuy.cpu,
+          market: cpuBuy.market,
+          freeAgentDeck: cpuBuy.freeAgentDeck,
+          cpuBudget: cpuBuy.budget,
+          purchaseTurn: null,
+          cpuBought: true,
+          pendingPurchaseId: null,
+          marketActivity: [...current.marketActivity, ...cpuBuy.activities],
+          newMarketIds: cpuBuy.activities.flatMap((activity) => activity.replacement ? [activity.replacement.id] : []),
+          marketUpdateKey: current.marketUpdateKey + 1,
+          resolutionKey: current.resolutionKey + 1,
+          lastResolution: [{
+            kind: "buy",
+            actor: "cpu",
+            title: cpuBuy.purchases.length ? `CPU ${cpuBuy.purchases.length}명 영입` : "CPU 구매 패스",
+            detail: cpuBuy.purchases.join(" · ") || "예산 안에서 영입할 선수가 없습니다.",
+          }],
+          log,
+        };
       }
+
+      const player = cloneSide(current.player);
+      const cpu = cloneSide(current.cpu);
+      const log = [...current.log];
 
       drawNextLineup(player);
       drawNextLineup(cpu);
@@ -1107,17 +1300,17 @@ export function GamePrototype() {
         ...current,
         player,
         cpu,
-        market,
-        freeAgentDeck,
         stage,
         gameNumber,
         round: 1,
         phase: "setting_on_deck",
         playerBudget: 0,
-        cpuBudget,
+        cpuBudget: current.cpuBudget,
         purchaseTurn: null,
         cpuBought: false,
         pendingPurchaseId: null,
+        marketActivity: [],
+        newMarketIds: [],
         selectedId: null,
         resolutionKey: current.resolutionKey + 1,
         lastResolution: [
@@ -1161,7 +1354,7 @@ export function GamePrototype() {
           <span>① 6장으로 6라운드 진행</span>
           <span>② 먼저 상대 위협 안타에 내 카드의 수비 능력 적용</span>
           <span>③ 남은 안타 확정 후 내 안타를 위협 칸에 등록</span>
-          <span>④ 글러브·견제·병살·구종 상성·볼넷·퀵 아이·클러치 처리</span>
+          <span>④ 글러브·견제·병살·구종 상성·볼넷·퀵 아이·클러치·도루 처리</span>
           <span>⑤ 빠른 주자 +1베이스 · 보통 주자 2루에서 1루타 득점 · 추월 금지</span>
           <span>⑥ 홈팀 마지막 카드 뒤 원정팀 비지터 세이브</span>
           <span>⑦ 경기 전 온덱 1장 선택 가능 · PH 카드는 버리고 온덱 또는 라인업 맨 위 카드 투입</span>
@@ -1262,25 +1455,73 @@ export function GamePrototype() {
           <span>3경기 미니 시즌과 7전 4선승 월드 시리즈를 완료했습니다.</span>
           <button type="button" onClick={() => restart()}>같은 팀으로 새 시즌</button>
         </section>
+      ) : game.phase === "visitor_save" ? (
+        <section ref={visitorSaveAnchorRef} className="visitor-save-panel">
+          <div className="visitor-save-heading">
+            <div>
+              <p>END OF MINI-GAME · VISITOR SAVE</p>
+              <h2>홈팀의 마지막 위협에 대응하시겠습니까?</h2>
+              <span>공개한 카드에서는 빨간색 수비 즉시 능력만 적용되고, 안타와 공격 능력은 무시한 뒤 카드를 버립니다.</span>
+            </div>
+            <div className="save-threat-count"><span>남은 CPU 위협</span><strong>{game.cpu.pending.length}</strong></div>
+          </div>
+          <div className="visitor-save-options">
+            <button type="button" className="save-option skip-save" disabled={playbackRunning} onClick={() => resolveVisitorSave(null)}>
+              <small>선택 1</small><strong>사용 안 함</strong><span>카드를 소비하지 않고 위협을 그대로 처리</span>
+            </button>
+            <div className={`save-option-card ${game.player.onDeck ? "is-available" : "is-unavailable"}`}>
+              <small>선택 2 · 온덱 공개</small>
+              {game.player.onDeck ? <PlayerCard card={game.player.onDeck} disabled /> : <div className="empty-card">보관한 온덱 카드가 없습니다</div>}
+              <button type="button" disabled={playbackRunning || !game.player.onDeck} onClick={() => resolveVisitorSave("on_deck")}>온덱으로 세이브</button>
+            </div>
+            <div className="save-option-card lineup-save">
+              <small>선택 3 · 라인업 맨 위 공개</small>
+              <span className="large-card-back" aria-label="아직 공개하지 않은 라인업 맨 위 카드">45</span>
+              <button type="button" disabled={playbackRunning || (game.player.deck.length === 0 && game.player.discard.length === 0)} onClick={() => resolveVisitorSave("lineup")}>라인업 공개 후 세이브</button>
+            </div>
+          </div>
+          {playbackRunning && <p className="save-waiting">6번째 카드 처리가 끝나면 선택할 수 있습니다.</p>}
+        </section>
       ) : game.phase === "buying" ? (
-        <section className="buy-section">
+        <section ref={marketAnchorRef} className="buy-section">
           <div className="buy-header">
             <div>
               <p>BUY ROUND · 예산은 이 라운드에서만 사용</p>
               <h2>자유계약 선수 영입</h2>
             </div>
             <div className="budget-chip"><span>내 예산</span><strong>{game.playerBudget}</strong></div>
-            <button type="button" className="finish-buy" onClick={finishBuyRound}>구매 종료 · 다음 경기</button>
+            <button type="button" className="finish-buy" onClick={finishBuyRound}>
+              {!game.cpuBought ? "내 구매 종료 · AI 구매 보기" : game.purchaseTurn === null ? "AI 구매 확인 · 다음 경기" : "구매 종료 · 다음 경기"}
+            </button>
+          </div>
+          <div className={`cpu-market-report ${game.cpuBought ? "is-complete" : "is-waiting"}`}>
+            <div>
+              <p>CPU MARKET REPORT</p>
+              <h3>{game.cpuBought ? "AI 구매 결과" : "AI 구매 차례 대기"}</h3>
+              <span>{game.cpuBought ? "AI가 같은 시장에서 구매한 내용입니다." : "내 구매를 마치면 AI가 남은 시장에서 구매합니다."}</span>
+            </div>
+            {game.marketActivity.filter((activity) => activity.buyer === "cpu").length ? (
+              <div className="cpu-purchase-list">
+                {game.marketActivity.filter((activity) => activity.buyer === "cpu").map((activity, index) => (
+                  <article key={`${activity.recruit.id}-${index}`}>
+                    <b>영입 {activity.recruit.id} · {activity.recruit.name}</b>
+                    <span>비용 {activity.recruit.cost} · 마이너 이동 {activity.demote.id}</span>
+                    <em>{activity.replacement ? `시장 보충 ${activity.replacement.id} · ${activity.replacement.name}` : "FA 덱 소진"}</em>
+                  </article>
+                ))}
+              </div>
+            ) : game.cpuBought ? <strong className="cpu-pass">AI는 이번 라운드에 구매하지 않았습니다.</strong> : null}
           </div>
           <div className="market-lineup">
             {game.market.map((card) => {
               const affordable = (card.cost ?? 999) <= game.playerBudget;
               return (
-                <div className="market-slot" key={card.id}>
+                <div className={`market-slot ${game.newMarketIds.includes(card.id) ? "is-new-arrival" : ""}`} key={card.id}>
+                  {game.newMarketIds.includes(card.id) && <b className="new-arrival-badge">NEW · 새 입고</b>}
                   <PlayerCard
                     card={card}
                     selected={game.pendingPurchaseId === card.id}
-                    disabled={!affordable}
+                    disabled={playbackRunning || !affordable || game.purchaseTurn !== "player"}
                     onClick={() => selectFreeAgent(card.id)}
                   />
                   <span className={affordable ? "can-buy" : "cannot-buy"}>비용 {card.cost} · {affordable ? "영입 가능" : "예산 부족"}</span>
@@ -1360,6 +1601,7 @@ export function GamePrototype() {
                   card={card}
                   selected={game.selectedId === card.id}
                   disabled={playbackRunning}
+                  abilityActive={abilityIsActive(card, game.player, game.cpu)}
                   onClick={() => playRound(card.id)}
                 />
                 {card.pinchHitter && (
