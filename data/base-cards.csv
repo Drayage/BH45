@@ -1,0 +1,121 @@
+id,set,category,name,team,tier,type,cost,revenue,speed,pinchHitter,abilityText,hits,sourceImage
+ST-001,base,starter,Rookie,San Francisco,rookie,natural,,0,average,false,Glove: Cancel 1 Hit,single,httpssteamusercontentaakamaihdnetugc7919882953082131974A3EA2E997E0EB287BF0CBA605F32A628F492790.jpg
+ST-002,base,starter,Rookie,San Francisco,rookie,cyborg,,2,average,true,Pick Off: Remove 1 base runner,,httpssteamusercontentaakamaihdnetugc7919882953082131974A3EA2E997E0EB287BF0CBA605F32A628F492790.jpg
+ST-003,base,starter,Rookie,San Francisco,rookie,natural,,2,average,false,,single,httpssteamusercontentaakamaihdnetugc7919882953082131974A3EA2E997E0EB287BF0CBA605F32A628F492790.jpg
+ST-004,base,starter,Rookie,San Francisco,rookie,natural,,2,average,false,,single,httpssteamusercontentaakamaihdnetugc7919882953082131974A3EA2E997E0EB287BF0CBA605F32A628F492790.jpg
+ST-005,base,starter,Rookie,San Francisco,rookie,natural,,1,average,true,Glove: Cancel 1 Hit,,httpssteamusercontentaakamaihdnetugc7919882953082131974A3EA2E997E0EB287BF0CBA605F32A628F492790.jpg
+ST-006,base,starter,Rookie,San Francisco,rookie,cyborg,,1,average,true,Walk: Change all Hits to Walks,,httpssteamusercontentaakamaihdnetugc7919882953082131974A3EA2E997E0EB287BF0CBA605F32A628F492790.jpg
+ST-007,base,starter,Rookie,San Francisco,rookie,robot,,2,slow,false,,double,httpssteamusercontentaakamaihdnetugc7919882953082131974A3EA2E997E0EB287BF0CBA605F32A628F492790.jpg
+ST-008,base,starter,Rookie,San Francisco,rookie,robot,,1,average,false,,double,httpssteamusercontentaakamaihdnetugc7919882953082131974A3EA2E997E0EB287BF0CBA605F32A628F492790.jpg
+ST-009,base,starter,Rookie,San Francisco,rookie,robot,,1,slow,false,,single|single,httpssteamusercontentaakamaihdnetugc7919882953082131974A3EA2E997E0EB287BF0CBA605F32A628F492790.jpg
+ST-010,base,starter,Rookie,San Francisco,rookie,robot,,1,slow,false,,single|single,httpssteamusercontentaakamaihdnetugc7919882953082131974A3EA2E997E0EB287BF0CBA605F32A628F492790.jpg
+ST-011,base,starter,Veteran,San Francisco,veteran,natural,,0,average,false,Clutch: Double (if runner on 2nd or 3rd),single,httpssteamusercontentaakamaihdnetugc7919882953082131974A3EA2E997E0EB287BF0CBA605F32A628F492790.jpg
+ST-012,base,starter,Veteran,San Francisco,veteran,cyborg,,2,average,true,Fastball: Cancel all Hits vs. a Natural,,httpssteamusercontentaakamaihdnetugc7919882953082131974A3EA2E997E0EB287BF0CBA605F32A628F492790.jpg
+ST-013,base,starter,Veteran,San Francisco,veteran,natural,,2,average,false,Glove: Cancel 1 Hit,single,httpssteamusercontentaakamaihdnetugc7919882953082131974A3EA2E997E0EB287BF0CBA605F32A628F492790.jpg
+ST-014,base,starter,Veteran,San Francisco,veteran,robot,,0,average,true,,home_run,httpssteamusercontentaakamaihdnetugc7919882953082131974A3EA2E997E0EB287BF0CBA605F32A628F492790.jpg
+ST-015,base,starter,Veteran,San Francisco,veteran,robot,,2,average,false,,single|single,httpssteamusercontentaakamaihdnetugc7919882953082131974A3EA2E997E0EB287BF0CBA605F32A628F492790.jpg
+ST-016,base,starter,Rookie,Los Angeles,rookie,natural,,0,average,false,Glove: Cancel 1 Hit,single,httpssteamusercontentaakamaihdnetugc79198829531608574574DCC3D337E61D4184FD361A369E225D333F0A01.jpg
+ST-017,base,starter,Rookie,Los Angeles,rookie,cyborg,,2,average,true,Pick Off: Remove 1 base runner,,httpssteamusercontentaakamaihdnetugc79198829531608574574DCC3D337E61D4184FD361A369E225D333F0A01.jpg
+ST-018,base,starter,Rookie,Los Angeles,rookie,natural,,2,average,false,,single,httpssteamusercontentaakamaihdnetugc79198829531608574574DCC3D337E61D4184FD361A369E225D333F0A01.jpg
+ST-019,base,starter,Rookie,Los Angeles,rookie,natural,,2,average,false,,single,httpssteamusercontentaakamaihdnetugc79198829531608574574DCC3D337E61D4184FD361A369E225D333F0A01.jpg
+ST-020,base,starter,Rookie,Los Angeles,rookie,natural,,1,average,true,Glove: Cancel 1 Hit,,httpssteamusercontentaakamaihdnetugc79198829531608574574DCC3D337E61D4184FD361A369E225D333F0A01.jpg
+ST-021,base,starter,Rookie,Los Angeles,rookie,cyborg,,1,average,true,Walk: Change all Hits to Walks,,httpssteamusercontentaakamaihdnetugc79198829531608574574DCC3D337E61D4184FD361A369E225D333F0A01.jpg
+ST-022,base,starter,Rookie,Los Angeles,rookie,robot,,2,slow,false,,double,httpssteamusercontentaakamaihdnetugc79198829531608574574DCC3D337E61D4184FD361A369E225D333F0A01.jpg
+ST-023,base,starter,Rookie,Los Angeles,rookie,robot,,1,average,false,,double,httpssteamusercontentaakamaihdnetugc79198829531608574574DCC3D337E61D4184FD361A369E225D333F0A01.jpg
+ST-024,base,starter,Rookie,Los Angeles,rookie,robot,,1,slow,false,,single|single,httpssteamusercontentaakamaihdnetugc79198829531608574574DCC3D337E61D4184FD361A369E225D333F0A01.jpg
+ST-025,base,starter,Rookie,Los Angeles,rookie,robot,,1,slow,false,,single|single,httpssteamusercontentaakamaihdnetugc79198829531608574574DCC3D337E61D4184FD361A369E225D333F0A01.jpg
+ST-026,base,starter,Veteran,Los Angeles,veteran,natural,,1,average,true,"Leadoff: If this is your first card played, Single",,httpssteamusercontentaakamaihdnetugc79198829531608574574DCC3D337E61D4184FD361A369E225D333F0A01.jpg
+ST-027,base,starter,Veteran,Los Angeles,veteran,cyborg,,2,average,true,Curve: Cancel all Hits vs. a Robot,,httpssteamusercontentaakamaihdnetugc79198829531608574574DCC3D337E61D4184FD361A369E225D333F0A01.jpg
+ST-028,base,starter,Veteran,Los Angeles,veteran,robot,,1,average,false,,single|double,httpssteamusercontentaakamaihdnetugc79198829531608574574DCC3D337E61D4184FD361A369E225D333F0A01.jpg
+ST-029,base,starter,Veteran,Los Angeles,veteran,natural,,1,average,false,,home_run,httpssteamusercontentaakamaihdnetugc79198829531608574574DCC3D337E61D4184FD361A369E225D333F0A01.jpg
+ST-030,base,starter,Veteran,Los Angeles,veteran,robot,,1,average,false,Stolen Base: Advance all Average and Fast base runners 1 base,single|single,httpssteamusercontentaakamaihdnetugc79198829531608574574DCC3D337E61D4184FD361A369E225D333F0A01.jpg
+ST-031,base,starter,Rookie,Boston,rookie,natural,,0,average,false,Glove: Cancel 1 Hit,single,httpssteamusercontentaakamaihdnetugc7919882953082131974A3EA2E997E0EB287BF0CBA605F32A628F492790.jpg
+ST-032,base,starter,Rookie,Boston,rookie,cyborg,,2,average,true,Pick Off: Remove 1 base runner,,httpssteamusercontentaakamaihdnetugc7919882953082131974A3EA2E997E0EB287BF0CBA605F32A628F492790.jpg
+ST-033,base,starter,Rookie,Boston,rookie,natural,,2,average,false,,single,httpssteamusercontentaakamaihdnetugc7919882953082131974A3EA2E997E0EB287BF0CBA605F32A628F492790.jpg
+ST-034,base,starter,Rookie,Boston,rookie,natural,,2,average,false,,single,httpssteamusercontentaakamaihdnetugc7919882953082131974A3EA2E997E0EB287BF0CBA605F32A628F492790.jpg
+ST-035,base,starter,Rookie,Boston,rookie,natural,,1,average,true,Glove: Cancel 1 Hit,,httpssteamusercontentaakamaihdnetugc7919882953082131974A3EA2E997E0EB287BF0CBA605F32A628F492790.jpg
+ST-036,base,starter,Rookie,Boston,rookie,cyborg,,1,average,true,Walk: Change all Hits to Walks,,httpssteamusercontentaakamaihdnetugc7919882953082131974A3EA2E997E0EB287BF0CBA605F32A628F492790.jpg
+ST-037,base,starter,Rookie,Boston,rookie,robot,,2,slow,false,,double,httpssteamusercontentaakamaihdnetugc7919882953082131974A3EA2E997E0EB287BF0CBA605F32A628F492790.jpg
+ST-038,base,starter,Rookie,Boston,rookie,robot,,1,average,false,,double,httpssteamusercontentaakamaihdnetugc7919882953082131974A3EA2E997E0EB287BF0CBA605F32A628F492790.jpg
+ST-039,base,starter,Rookie,Boston,rookie,robot,,1,slow,false,,single|single,httpssteamusercontentaakamaihdnetugc7919882953082131974A3EA2E997E0EB287BF0CBA605F32A628F492790.jpg
+ST-040,base,starter,Rookie,Boston,rookie,robot,,1,slow,false,,single|single,httpssteamusercontentaakamaihdnetugc7919882953082131974A3EA2E997E0EB287BF0CBA605F32A628F492790.jpg
+ST-041,base,starter,Veteran,Boston,veteran,natural,,0,average,true,Clutch: Single (if runner on 2nd or 3rd),single,httpssteamusercontentaakamaihdnetugc7919882953082131974A3EA2E997E0EB287BF0CBA605F32A628F492790.jpg
+ST-042,base,starter,Veteran,Boston,veteran,cyborg,,2,average,true,Knuckle Ball: Reduce all Hits by 1 base,,httpssteamusercontentaakamaihdnetugc7919882953082131974A3EA2E997E0EB287BF0CBA605F32A628F492790.jpg
+ST-043,base,starter,Veteran,Boston,veteran,natural,,1,slow,false,Glove: Cancel 1 Hit,triple,httpssteamusercontentaakamaihdnetugc7919882953082131974A3EA2E997E0EB287BF0CBA605F32A628F492790.jpg
+ST-044,base,starter,Veteran,Boston,veteran,robot,,1,average,false,,home_run,httpssteamusercontentaakamaihdnetugc7919882953082131974A3EA2E997E0EB287BF0CBA605F32A628F492790.jpg
+ST-045,base,starter,Veteran,Boston,veteran,robot,,2,fast,false,,double,httpssteamusercontentaakamaihdnetugc7919882953082131974A3EA2E997E0EB287BF0CBA605F32A628F492790.jpg
+ST-046,base,starter,Rookie,New York,rookie,natural,,0,average,false,Glove: Cancel 1 Hit,single,httpssteamusercontentaakamaihdnetugc791988035055676465886CFD6F4A460F4C361D89102F3B89B7946EFA59.jpg
+ST-047,base,starter,Rookie,New York,rookie,cyborg,,2,average,true,Pick Off: Remove 1 base runner,,httpssteamusercontentaakamaihdnetugc791988035055676465886CFD6F4A460F4C361D89102F3B89B7946EFA59.jpg
+ST-048,base,starter,Rookie,New York,rookie,natural,,2,average,false,,single,httpssteamusercontentaakamaihdnetugc791988035055676465886CFD6F4A460F4C361D89102F3B89B7946EFA59.jpg
+ST-049,base,starter,Rookie,New York,rookie,natural,,2,average,false,,single,httpssteamusercontentaakamaihdnetugc791988035055676465886CFD6F4A460F4C361D89102F3B89B7946EFA59.jpg
+ST-050,base,starter,Rookie,New York,rookie,natural,,1,average,true,Glove: Cancel 1 Hit,,httpssteamusercontentaakamaihdnetugc791988035055676465886CFD6F4A460F4C361D89102F3B89B7946EFA59.jpg
+ST-051,base,starter,Rookie,New York,rookie,cyborg,,1,average,true,Walk: Change all Hits to Walks,,httpssteamusercontentaakamaihdnetugc791988035055676465886CFD6F4A460F4C361D89102F3B89B7946EFA59.jpg
+ST-052,base,starter,Rookie,New York,rookie,robot,,2,slow,false,,double,httpssteamusercontentaakamaihdnetugc791988035055676465886CFD6F4A460F4C361D89102F3B89B7946EFA59.jpg
+ST-053,base,starter,Rookie,New York,rookie,robot,,1,average,false,,double,httpssteamusercontentaakamaihdnetugc791988035055676465886CFD6F4A460F4C361D89102F3B89B7946EFA59.jpg
+ST-054,base,starter,Rookie,New York,rookie,robot,,1,slow,false,,single|single,httpssteamusercontentaakamaihdnetugc791988035055676465886CFD6F4A460F4C361D89102F3B89B7946EFA59.jpg
+ST-055,base,starter,Rookie,New York,rookie,robot,,1,slow,false,,single|single,httpssteamusercontentaakamaihdnetugc791988035055676465886CFD6F4A460F4C361D89102F3B89B7946EFA59.jpg
+ST-056,base,starter,Veteran,New York,veteran,natural,,1,average,false,Double Play: Remove up to 2 base runners (no Fast),single,httpssteamusercontentaakamaihdnetugc791988035055676465886CFD6F4A460F4C361D89102F3B89B7946EFA59.jpg
+ST-057,base,starter,Veteran,New York,veteran,cyborg,,1,average,false,Fastball: Cancel all Hits vs. a Natural,single,httpssteamusercontentaakamaihdnetugc791988035055676465886CFD6F4A460F4C361D89102F3B89B7946EFA59.jpg
+ST-058,base,starter,Veteran,New York,veteran,robot,,2,slow,true,Quick Eye: Single (if vs. Cyborg),double,httpssteamusercontentaakamaihdnetugc791988035055676465886CFD6F4A460F4C361D89102F3B89B7946EFA59.jpg
+ST-059,base,starter,Veteran,New York,veteran,natural,,0,average,true,,home_run,httpssteamusercontentaakamaihdnetugc791988035055676465886CFD6F4A460F4C361D89102F3B89B7946EFA59.jpg
+ST-060,base,starter,Veteran,New York,veteran,robot,,2,average,false,,triple,httpssteamusercontentaakamaihdnetugc791988035055676465886CFD6F4A460F4C361D89102F3B89B7946EFA59.jpg
+FA-061,base,free_agent,Bucky Cano,Baltimore,,natural,7,2,average,false,Double Play: Remove up to 2 base runners (no Fast),single|single,httpssteamusercontentaakamaihdnetugc7919882953161101764CDE9DCB2510284137C9A55E2433F076C5E8ADB9.jpg
+FA-062,base,free_agent,Peeyee Rizzuto,Texas,,natural,4,1,fast,true,Glove: Cancel 1 Hit,single,httpssteamusercontentaakamaihdnetugc791988295316150361EF016F36F9E72250761EBC93924027171C11C3B3.jpg
+FA-063,base,free_agent,Ichiro Matsui,Seattle,,natural,6,1,fast,true,Glove: Cancel 1 Hit,single|single,httpssteamusercontentaakamaihdnetugc791988295316122721DAA188250E9A90014FBBBB4FE1878CEA496C3DF1.jpg
+FA-064,base,free_agent,Brooks Nettles,Detroit,,natural,6,1,average,false,Clutch: Single (if runner on 2nd or 3rd),single|single,httpssteamusercontentaakamaihdnetugc791988295316122721DAA188250E9A90014FBBBB4FE1878CEA496C3DF1.jpg
+FA-065,base,free_agent,Frankie Foxx,Pittsburgh,,natural,4,2,slow,true,Glove: Cancel 1 Hit,double,httpssteamusercontentaakamaihdnetugc79198829531608974984ACD9A72183475A9105DE1E7D4F3F14F2986638.jpg
+FA-066,base,free_agent,Maury Aparicio,San Francisco,,natural,5,1,fast,true,Double Play: Remove up to 2 base runners (no Fast),single,httpssteamusercontentaakamaihdnetugc79198829531608974984ACD9A72183475A9105DE1E7D4F3F14F2986638.jpg
+FA-067,base,free_agent,Mickey Maris,New York,,natural,7,0,average,false,Glove: Cancel 1 Hit,single|home_run,httpssteamusercontentaakamaihdnetugc7919882953161101764CDE9DCB2510284137C9A55E2433F076C5E8ADB9.jpg
+FA-068,base,free_agent,Babe Bench,Cincinnati,,natural,5,1,slow,false,Glove: Cancel 1 Hit,single|double,httpssteamusercontentaakamaihdnetugc7919882953161101764CDE9DCB2510284137C9A55E2433F076C5E8ADB9.jpg
+FA-069,base,free_agent,Mark Lopes,Detroit,,natural,5,3,average,false,,single|single,httpssteamusercontentaakamaihdnetugc791988295316122721DAA188250E9A90014FBBBB4FE1878CEA496C3DF1.jpg
+FA-070,base,free_agent,Derek Belanger,Kansas City,,natural,5,4,average,true,Double Play: Remove up to 2 base runners (no Fast),,httpssteamusercontentaakamaihdnetugc7919882953161101764CDE9DCB2510284137C9A55E2433F076C5E8ADB9.jpg
+FA-071,base,free_agent,Joe Mays,Pittsburgh,,natural,5,1,average,true,Clutch: Single (if runner on 2nd or 3rd),double,httpssteamusercontentaakamaihdnetugc79198829531608974984ACD9A72183475A9105DE1E7D4F3F14F2986638.jpg
+FA-072,base,free_agent,Boog Banks,Chicago,,natural,5,2,average,true,Glove: Cancel 1 Hit,double,httpssteamusercontentaakamaihdnetugc791988295316122721DAA188250E9A90014FBBBB4FE1878CEA496C3DF1.jpg
+FA-073,base,free_agent,Dave Trout,San Francisco,,natural,5,3,average,true,,triple,httpssteamusercontentaakamaihdnetugc79198829531608974984ACD9A72183475A9105DE1E7D4F3F14F2986638.jpg
+FA-074,base,free_agent,Josh Lynn,Boston,,natural,5,2,fast,true,"Leadoff: If this is your first card played, Single",,httpssteamusercontentaakamaihdnetugc79198829531608974984ACD9A72183475A9105DE1E7D4F3F14F2986638.jpg
+FA-075,base,free_agent,Ozzie Foxx,Chicago,,natural,5,2,average,true,Double Play: Remove up to 2 base runners (no Fast),single,httpssteamusercontentaakamaihdnetugc791988295316122721DAA188250E9A90014FBBBB4FE1878CEA496C3DF1.jpg
+FA-076,base,free_agent,Nellie McGhee,Pittsburgh,,natural,5,2,fast,true,Glove: Cancel 1 Hit,single,httpssteamusercontentaakamaihdnetugc79198829531608974984ACD9A72183475A9105DE1E7D4F3F14F2986638.jpg
+FA-077,base,free_agent,Bucky Tulo,Boston,,natural,6,1,fast,true,Glove: Cancel 1 Hit,triple,httpssteamusercontentaakamaihdnetugc7919882953161101764CDE9DCB2510284137C9A55E2433F076C5E8ADB9.jpg
+FA-078,base,free_agent,Moose Giambi,New York,,natural,7,2,average,true,Glove: Cancel 1 Hit,home_run,httpssteamusercontentaakamaihdnetugc791988295316122721DAA188250E9A90014FBBBB4FE1878CEA496C3DF1.jpg
+FA-079,base,free_agent,Hank Hornsby,Atlanta,,natural,8,3,fast,true,"Leadoff: If this is your first card played, Single",single,httpssteamusercontentaakamaihdnetugc7919882953161101764CDE9DCB2510284137C9A55E2433F076C5E8ADB9.jpg
+FA-080,base,free_agent,Ty Terry,Pittsburgh,,natural,8,2,average,true,Clutch: Single (if runner on 2nd or 3rd),home_run,httpssteamusercontentaakamaihdnetugc791988295316122721DAA188250E9A90014FBBBB4FE1878CEA496C3DF1.jpg
+FA-081,base,free_agent,Troy Jeter,New York,,natural,7,3,average,false,Glove: Cancel 1 Hit,single|single,httpssteamusercontentaakamaihdnetugc791988295316122721DAA188250E9A90014FBBBB4FE1878CEA496C3DF1.jpg
+FA-082,base,free_agent,Willie McGwire,Boston,,natural,8,2,fast,false,Glove: Cancel 1 Hit,single|double,httpssteamusercontentaakamaihdnetugc7919882953161101764CDE9DCB2510284137C9A55E2433F076C5E8ADB9.jpg
+FA-083,base,free_agent,Barry Sosa,Chicago,,natural,9,1,average,false,,home_run|home_run,httpssteamusercontentaakamaihdnetugc791988295316122721DAA188250E9A90014FBBBB4FE1878CEA496C3DF1.jpg
+FA-084,base,free_agent,Dizzy Drysdale,New York,,cyborg,5,2,average,true,Spit Ball: Cancel all Hits vs. a Cyborg,double,httpssteamusercontentaakamaihdnetugc791988295316122721DAA188250E9A90014FBBBB4FE1878CEA496C3DF1.jpg
+FA-085,base,free_agent,Hoyt Niekro,St. Louis,,cyborg,5,2,average,true,Knuckle Ball: Reduce all Hits by 1 base,single,httpssteamusercontentaakamaihdnetugc791988295316122721DAA188250E9A90014FBBBB4FE1878CEA496C3DF1.jpg
+FA-086,base,free_agent,Blue Moon Odoul,Seattle,,cyborg,6,3,average,true,Fastball: Cancel all Hits vs. a Natural,single,httpssteamusercontentaakamaihdnetugc7919882953161101764CDE9DCB2510284137C9A55E2433F076C5E8ADB9.jpg
+FA-087,base,free_agent,Satchel Seaver,New York,,cyborg,6,3,average,true,Fastball: Cancel all Hits vs. a Natural,single,httpssteamusercontentaakamaihdnetugc79198829531608974984ACD9A72183475A9105DE1E7D4F3F14F2986638.jpg
+FA-088,base,free_agent,Juan Spahn,St. Louis,,cyborg,8,2,average,false,Curve: Cancel all Hits vs. a Robot,double|single,httpssteamusercontentaakamaihdnetugc79198829531608974984ACD9A72183475A9105DE1E7D4F3F14F2986638.jpg
+FA-089,base,free_agent,CC Clemens,Boston,,cyborg,7,2,average,true,Fastball: Cancel all Hits vs. a Natural,triple,httpssteamusercontentaakamaihdnetugc791988295316122721DAA188250E9A90014FBBBB4FE1878CEA496C3DF1.jpg
+FA-090,base,free_agent,Hideo Tanaka,Cleveland,,cyborg,8,0,average,false,Curve: Cancel all Hits vs. a Robot,single|single|single,httpssteamusercontentaakamaihdnetugc791988295316122721DAA188250E9A90014FBBBB4FE1878CEA496C3DF1.jpg
+FA-091,base,free_agent,Nolan Gooden,New York,,cyborg,5,2,average,true,Walk: Change all Hits to Walks,double,httpssteamusercontentaakamaihdnetugc791988295316122721DAA188250E9A90014FBBBB4FE1878CEA496C3DF1.jpg
+FA-092,base,free_agent,Daisuke Darvish,Texas,,cyborg,7,1,average,false,Curve: Cancel all Hits vs. a Robot,single|double,httpssteamusercontentaakamaihdnetugc7919882953161101764CDE9DCB2510284137C9A55E2433F076C5E8ADB9.jpg
+FA-093,base,free_agent,Sandy Gibson,Pittsburgh,,cyborg,7,1,average,true,Fastball: Cancel all Hits vs. a Natural,home_run,httpssteamusercontentaakamaihdnetugc791988295316122721DAA188250E9A90014FBBBB4FE1878CEA496C3DF1.jpg
+FA-094,base,free_agent,Yu Nomo,Baltimore,,cyborg,8,3,average,true,Knuckle Ball: Reduce all Hits by 1 base,triple,httpssteamusercontentaakamaihdnetugc791988295316122721DAA188250E9A90014FBBBB4FE1878CEA496C3DF1.jpg
+FA-095,base,free_agent,Z Bat,Boston,,robot,5,0,slow,false,,double|home_run,httpssteamusercontentaakamaihdnetugc791988295316122721DAA188250E9A90014FBBBB4FE1878CEA496C3DF1.jpg
+FA-096,base,free_agent,Wiffle,Seattle,,robot,4,0,slow,false,,single|single|single,httpssteamusercontentaakamaihdnetugc791988295316122721DAA188250E9A90014FBBBB4FE1878CEA496C3DF1.jpg
+FA-097,base,free_agent,Model T,Cleveland,,robot,6,0,slow,false,,single|double|double,httpssteamusercontentaakamaihdnetugc791988295316122721DAA188250E9A90014FBBBB4FE1878CEA496C3DF1.jpg
+FA-098,base,free_agent,Bat 90,Cincinnati,,robot,4,1,slow,true,Quick Eye: Single (if vs. Cyborg),home_run,httpssteamusercontentaakamaihdnetugc791988295316122721DAA188250E9A90014FBBBB4FE1878CEA496C3DF1.jpg
+FA-099,base,free_agent,Sonic Bat,Cleveland,,robot,5,2,average,true,Quick Eye: Triple (if vs. Cyborg),single,httpssteamusercontentaakamaihdnetugc79198829531608974984ACD9A72183475A9105DE1E7D4F3F14F2986638.jpg
+FA-100,base,free_agent,Big Mo,San Francisco,,robot,5,0,slow,false,Quick Eye: Homerun (if vs. Cyborg),single|single,httpssteamusercontentaakamaihdnetugc79198829531608974984ACD9A72183475A9105DE1E7D4F3F14F2986638.jpg
+FA-101,base,free_agent,Bat 90,Cincinnati,,robot,4,1,slow,true,Quick Eye: Single (if vs. Cyborg),home_run,httpssteamusercontentaakamaihdnetugc79198829531608974984ACD9A72183475A9105DE1E7D4F3F14F2986638.jpg
+FA-102,base,free_agent,Kong 35,Los Angeles,,robot,6,1,slow,true,Clutch: Single (if runner on 2nd or 3rd),home_run,httpssteamusercontentaakamaihdnetugc79198829531608974984ACD9A72183475A9105DE1E7D4F3F14F2986638.jpg
+FA-103,base,free_agent,Sprint 36,Philadelphia,,robot,6,1,fast,false,Stolen Base: Advance all Average and Fast base runners 1 base,single|double,httpssteamusercontentaakamaihdnetugc79198829531608974984ACD9A72183475A9105DE1E7D4F3F14F2986638.jpg
+FA-104,base,free_agent,Speedo 42,Pittsburgh,,robot,6,1,fast,false,Stolen Base: Advance all Average and Fast base runners 1 base,single|double,httpssteamusercontentaakamaihdnetugc791988295316122721DAA188250E9A90014FBBBB4FE1878CEA496C3DF1.jpg
+FA-105,base,free_agent,Speedbot,Kansas City,,robot,6,1,fast,false,,single|triple,httpssteamusercontentaakamaihdnetugc79198829531608974984ACD9A72183475A9105DE1E7D4F3F14F2986638.jpg
+FA-106,base,free_agent,Bat 44,Cincinnati,,robot,5,2,slow,false,Stolen Base: Advance all Average and Fast base runners 1 base,single|double,httpssteamusercontentaakamaihdnetugc79198829531608974984ACD9A72183475A9105DE1E7D4F3F14F2986638.jpg
+FA-107,base,free_agent,Bat 100 L,Chicago,,robot,6,3,average,true,,home_run,httpssteamusercontentaakamaihdnetugc7919882953161101764CDE9DCB2510284137C9A55E2433F076C5E8ADB9.jpg
+FA-108,base,free_agent,Bat 100 R,Cleveland,,robot,6,3,average,true,,home_run,httpssteamusercontentaakamaihdnetugc79198829531608974984ACD9A72183475A9105DE1E7D4F3F14F2986638.jpg
+FA-109,base,free_agent,5 Tool Model,Cincinnati,,robot,10,1,fast,false,Clutch: Single (if runner on 2nd or 3rd),single|single|single,httpssteamusercontentaakamaihdnetugc79198829531608974984ACD9A72183475A9105DE1E7D4F3F14F2986638.jpg
+FA-110,base,free_agent,See Ya,Detroit,,robot,7,0,slow,false,,home_run|home_run,httpssteamusercontentaakamaihdnetugc79198829531608974984ACD9A72183475A9105DE1E7D4F3F14F2986638.jpg
+FA-111,base,free_agent,Turtlebot TR,Texas,,robot,4,2,average,false,,single|single,httpssteamusercontentaakamaihdnetugc79198829531608974984ACD9A72183475A9105DE1E7D4F3F14F2986638.jpg
+FA-112,base,free_agent,Turtlebot LG,Atlanta,,robot,4,2,average,false,,single|single,httpssteamusercontentaakamaihdnetugc79198829531608974984ACD9A72183475A9105DE1E7D4F3F14F2986638.jpg
+FA-113,base,free_agent,Boomer 3,Baltimore,,robot,7,0,fast,false,"Leadoff: If this is your first card played, Single",single|single,httpssteamusercontentaakamaihdnetugc791988295316122721DAA188250E9A90014FBBBB4FE1878CEA496C3DF1.jpg
+FA-114,base,free_agent,Mini Motor CX,San Francisco,,robot,4,0,fast,false,Stolen Base: Advance all Average and Fast base runners 1 base,single|single,httpssteamusercontentaakamaihdnetugc791988295316122721DAA188250E9A90014FBBBB4FE1878CEA496C3DF1.jpg
+FA-115,base,free_agent,Mini Motor FX,Detroit,,robot,4,0,fast,false,Stolen Base: Advance all Average and Fast base runners 1 base,single|single,httpssteamusercontentaakamaihdnetugc791988295316122721DAA188250E9A90014FBBBB4FE1878CEA496C3DF1.jpg
+FA-116,base,free_agent,Cy Pie,St. Louis,,natural,8,2,fast,true,"Leadoff: If this is your first card played, Double",single,httpssteamusercontentaakamaihdnetugc791988295316122721DAA188250E9A90014FBBBB4FE1878CEA496C3DF1.jpg
+FA-117,base,free_agent,Max Verlander,Philadelphia,,cyborg,11,2,fast,false,Curve: Cancel all Hits vs. a Robot,triple|double,httpssteamusercontentaakamaihdnetugc791988295316122721DAA188250E9A90014FBBBB4FE1878CEA496C3DF1.jpg
+FA-118,base,free_agent,Catfish Carlton,Cleveland,,cyborg,9,1,average,false,Spit Ball: Cancel all Hits vs. a Cyborg,single|single|double,httpssteamusercontentaakamaihdnetugc791988295316122721DAA188250E9A90014FBBBB4FE1878CEA496C3DF1.jpg
+FA-119,base,free_agent,Model SK,Baltimore,,robot,6,2,average,false,Quick Eye: Single (if vs. Cyborg),double|single,httpssteamusercontentaakamaihdnetugc791988295316122721DAA188250E9A90014FBBBB4FE1878CEA496C3DF1.jpg
+FA-120,base,free_agent,Model TT,Detroit,,robot,6,2,average,false,Quick Eye: Single (if vs. Cyborg),double|single,httpssteamusercontentaakamaihdnetugc7919882953161101764CDE9DCB2510284137C9A55E2433F076C5E8ADB9.jpg

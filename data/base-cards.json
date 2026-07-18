@@ -1,0 +1,2173 @@
+[
+  {
+    "id": "ST-001",
+    "set": "base",
+    "category": "starter",
+    "name": "Rookie",
+    "team": "San Francisco",
+    "tier": "rookie",
+    "type": "natural",
+    "cost": null,
+    "revenue": 0,
+    "speed": "average",
+    "pinchHitter": false,
+    "abilityText": "Glove: Cancel 1 Hit",
+    "hits": [
+      "single"
+    ],
+    "sourceImage": "httpssteamusercontentaakamaihdnetugc7919882953082131974A3EA2E997E0EB287BF0CBA605F32A628F492790.jpg"
+  },
+  {
+    "id": "ST-002",
+    "set": "base",
+    "category": "starter",
+    "name": "Rookie",
+    "team": "San Francisco",
+    "tier": "rookie",
+    "type": "cyborg",
+    "cost": null,
+    "revenue": 2,
+    "speed": "average",
+    "pinchHitter": true,
+    "abilityText": "Pick Off: Remove 1 base runner",
+    "hits": [],
+    "sourceImage": "httpssteamusercontentaakamaihdnetugc7919882953082131974A3EA2E997E0EB287BF0CBA605F32A628F492790.jpg"
+  },
+  {
+    "id": "ST-003",
+    "set": "base",
+    "category": "starter",
+    "name": "Rookie",
+    "team": "San Francisco",
+    "tier": "rookie",
+    "type": "natural",
+    "cost": null,
+    "revenue": 2,
+    "speed": "average",
+    "pinchHitter": false,
+    "abilityText": null,
+    "hits": [
+      "single"
+    ],
+    "sourceImage": "httpssteamusercontentaakamaihdnetugc7919882953082131974A3EA2E997E0EB287BF0CBA605F32A628F492790.jpg"
+  },
+  {
+    "id": "ST-004",
+    "set": "base",
+    "category": "starter",
+    "name": "Rookie",
+    "team": "San Francisco",
+    "tier": "rookie",
+    "type": "natural",
+    "cost": null,
+    "revenue": 2,
+    "speed": "average",
+    "pinchHitter": false,
+    "abilityText": null,
+    "hits": [
+      "single"
+    ],
+    "sourceImage": "httpssteamusercontentaakamaihdnetugc7919882953082131974A3EA2E997E0EB287BF0CBA605F32A628F492790.jpg"
+  },
+  {
+    "id": "ST-005",
+    "set": "base",
+    "category": "starter",
+    "name": "Rookie",
+    "team": "San Francisco",
+    "tier": "rookie",
+    "type": "natural",
+    "cost": null,
+    "revenue": 1,
+    "speed": "average",
+    "pinchHitter": true,
+    "abilityText": "Glove: Cancel 1 Hit",
+    "hits": [],
+    "sourceImage": "httpssteamusercontentaakamaihdnetugc7919882953082131974A3EA2E997E0EB287BF0CBA605F32A628F492790.jpg"
+  },
+  {
+    "id": "ST-006",
+    "set": "base",
+    "category": "starter",
+    "name": "Rookie",
+    "team": "San Francisco",
+    "tier": "rookie",
+    "type": "cyborg",
+    "cost": null,
+    "revenue": 1,
+    "speed": "average",
+    "pinchHitter": true,
+    "abilityText": "Walk: Change all Hits to Walks",
+    "hits": [],
+    "sourceImage": "httpssteamusercontentaakamaihdnetugc7919882953082131974A3EA2E997E0EB287BF0CBA605F32A628F492790.jpg"
+  },
+  {
+    "id": "ST-007",
+    "set": "base",
+    "category": "starter",
+    "name": "Rookie",
+    "team": "San Francisco",
+    "tier": "rookie",
+    "type": "robot",
+    "cost": null,
+    "revenue": 2,
+    "speed": "slow",
+    "pinchHitter": false,
+    "abilityText": null,
+    "hits": [
+      "double"
+    ],
+    "sourceImage": "httpssteamusercontentaakamaihdnetugc7919882953082131974A3EA2E997E0EB287BF0CBA605F32A628F492790.jpg"
+  },
+  {
+    "id": "ST-008",
+    "set": "base",
+    "category": "starter",
+    "name": "Rookie",
+    "team": "San Francisco",
+    "tier": "rookie",
+    "type": "robot",
+    "cost": null,
+    "revenue": 1,
+    "speed": "average",
+    "pinchHitter": false,
+    "abilityText": null,
+    "hits": [
+      "double"
+    ],
+    "sourceImage": "httpssteamusercontentaakamaihdnetugc7919882953082131974A3EA2E997E0EB287BF0CBA605F32A628F492790.jpg"
+  },
+  {
+    "id": "ST-009",
+    "set": "base",
+    "category": "starter",
+    "name": "Rookie",
+    "team": "San Francisco",
+    "tier": "rookie",
+    "type": "robot",
+    "cost": null,
+    "revenue": 1,
+    "speed": "slow",
+    "pinchHitter": false,
+    "abilityText": null,
+    "hits": [
+      "single",
+      "single"
+    ],
+    "sourceImage": "httpssteamusercontentaakamaihdnetugc7919882953082131974A3EA2E997E0EB287BF0CBA605F32A628F492790.jpg"
+  },
+  {
+    "id": "ST-010",
+    "set": "base",
+    "category": "starter",
+    "name": "Rookie",
+    "team": "San Francisco",
+    "tier": "rookie",
+    "type": "robot",
+    "cost": null,
+    "revenue": 1,
+    "speed": "slow",
+    "pinchHitter": false,
+    "abilityText": null,
+    "hits": [
+      "single",
+      "single"
+    ],
+    "sourceImage": "httpssteamusercontentaakamaihdnetugc7919882953082131974A3EA2E997E0EB287BF0CBA605F32A628F492790.jpg"
+  },
+  {
+    "id": "ST-011",
+    "set": "base",
+    "category": "starter",
+    "name": "Veteran",
+    "team": "San Francisco",
+    "tier": "veteran",
+    "type": "natural",
+    "cost": null,
+    "revenue": 0,
+    "speed": "average",
+    "pinchHitter": false,
+    "abilityText": "Clutch: Double (if runner on 2nd or 3rd)",
+    "hits": [
+      "single"
+    ],
+    "sourceImage": "httpssteamusercontentaakamaihdnetugc7919882953082131974A3EA2E997E0EB287BF0CBA605F32A628F492790.jpg"
+  },
+  {
+    "id": "ST-012",
+    "set": "base",
+    "category": "starter",
+    "name": "Veteran",
+    "team": "San Francisco",
+    "tier": "veteran",
+    "type": "cyborg",
+    "cost": null,
+    "revenue": 2,
+    "speed": "average",
+    "pinchHitter": true,
+    "abilityText": "Fastball: Cancel all Hits vs. a Natural",
+    "hits": [],
+    "sourceImage": "httpssteamusercontentaakamaihdnetugc7919882953082131974A3EA2E997E0EB287BF0CBA605F32A628F492790.jpg"
+  },
+  {
+    "id": "ST-013",
+    "set": "base",
+    "category": "starter",
+    "name": "Veteran",
+    "team": "San Francisco",
+    "tier": "veteran",
+    "type": "natural",
+    "cost": null,
+    "revenue": 2,
+    "speed": "average",
+    "pinchHitter": false,
+    "abilityText": "Glove: Cancel 1 Hit",
+    "hits": [
+      "single"
+    ],
+    "sourceImage": "httpssteamusercontentaakamaihdnetugc7919882953082131974A3EA2E997E0EB287BF0CBA605F32A628F492790.jpg"
+  },
+  {
+    "id": "ST-014",
+    "set": "base",
+    "category": "starter",
+    "name": "Veteran",
+    "team": "San Francisco",
+    "tier": "veteran",
+    "type": "robot",
+    "cost": null,
+    "revenue": 0,
+    "speed": "average",
+    "pinchHitter": true,
+    "abilityText": null,
+    "hits": [
+      "home_run"
+    ],
+    "sourceImage": "httpssteamusercontentaakamaihdnetugc7919882953082131974A3EA2E997E0EB287BF0CBA605F32A628F492790.jpg"
+  },
+  {
+    "id": "ST-015",
+    "set": "base",
+    "category": "starter",
+    "name": "Veteran",
+    "team": "San Francisco",
+    "tier": "veteran",
+    "type": "robot",
+    "cost": null,
+    "revenue": 2,
+    "speed": "average",
+    "pinchHitter": false,
+    "abilityText": null,
+    "hits": [
+      "single",
+      "single"
+    ],
+    "sourceImage": "httpssteamusercontentaakamaihdnetugc7919882953082131974A3EA2E997E0EB287BF0CBA605F32A628F492790.jpg"
+  },
+  {
+    "id": "ST-016",
+    "set": "base",
+    "category": "starter",
+    "name": "Rookie",
+    "team": "Los Angeles",
+    "tier": "rookie",
+    "type": "natural",
+    "cost": null,
+    "revenue": 0,
+    "speed": "average",
+    "pinchHitter": false,
+    "abilityText": "Glove: Cancel 1 Hit",
+    "hits": [
+      "single"
+    ],
+    "sourceImage": "httpssteamusercontentaakamaihdnetugc79198829531608574574DCC3D337E61D4184FD361A369E225D333F0A01.jpg"
+  },
+  {
+    "id": "ST-017",
+    "set": "base",
+    "category": "starter",
+    "name": "Rookie",
+    "team": "Los Angeles",
+    "tier": "rookie",
+    "type": "cyborg",
+    "cost": null,
+    "revenue": 2,
+    "speed": "average",
+    "pinchHitter": true,
+    "abilityText": "Pick Off: Remove 1 base runner",
+    "hits": [],
+    "sourceImage": "httpssteamusercontentaakamaihdnetugc79198829531608574574DCC3D337E61D4184FD361A369E225D333F0A01.jpg"
+  },
+  {
+    "id": "ST-018",
+    "set": "base",
+    "category": "starter",
+    "name": "Rookie",
+    "team": "Los Angeles",
+    "tier": "rookie",
+    "type": "natural",
+    "cost": null,
+    "revenue": 2,
+    "speed": "average",
+    "pinchHitter": false,
+    "abilityText": null,
+    "hits": [
+      "single"
+    ],
+    "sourceImage": "httpssteamusercontentaakamaihdnetugc79198829531608574574DCC3D337E61D4184FD361A369E225D333F0A01.jpg"
+  },
+  {
+    "id": "ST-019",
+    "set": "base",
+    "category": "starter",
+    "name": "Rookie",
+    "team": "Los Angeles",
+    "tier": "rookie",
+    "type": "natural",
+    "cost": null,
+    "revenue": 2,
+    "speed": "average",
+    "pinchHitter": false,
+    "abilityText": null,
+    "hits": [
+      "single"
+    ],
+    "sourceImage": "httpssteamusercontentaakamaihdnetugc79198829531608574574DCC3D337E61D4184FD361A369E225D333F0A01.jpg"
+  },
+  {
+    "id": "ST-020",
+    "set": "base",
+    "category": "starter",
+    "name": "Rookie",
+    "team": "Los Angeles",
+    "tier": "rookie",
+    "type": "natural",
+    "cost": null,
+    "revenue": 1,
+    "speed": "average",
+    "pinchHitter": true,
+    "abilityText": "Glove: Cancel 1 Hit",
+    "hits": [],
+    "sourceImage": "httpssteamusercontentaakamaihdnetugc79198829531608574574DCC3D337E61D4184FD361A369E225D333F0A01.jpg"
+  },
+  {
+    "id": "ST-021",
+    "set": "base",
+    "category": "starter",
+    "name": "Rookie",
+    "team": "Los Angeles",
+    "tier": "rookie",
+    "type": "cyborg",
+    "cost": null,
+    "revenue": 1,
+    "speed": "average",
+    "pinchHitter": true,
+    "abilityText": "Walk: Change all Hits to Walks",
+    "hits": [],
+    "sourceImage": "httpssteamusercontentaakamaihdnetugc79198829531608574574DCC3D337E61D4184FD361A369E225D333F0A01.jpg"
+  },
+  {
+    "id": "ST-022",
+    "set": "base",
+    "category": "starter",
+    "name": "Rookie",
+    "team": "Los Angeles",
+    "tier": "rookie",
+    "type": "robot",
+    "cost": null,
+    "revenue": 2,
+    "speed": "slow",
+    "pinchHitter": false,
+    "abilityText": null,
+    "hits": [
+      "double"
+    ],
+    "sourceImage": "httpssteamusercontentaakamaihdnetugc79198829531608574574DCC3D337E61D4184FD361A369E225D333F0A01.jpg"
+  },
+  {
+    "id": "ST-023",
+    "set": "base",
+    "category": "starter",
+    "name": "Rookie",
+    "team": "Los Angeles",
+    "tier": "rookie",
+    "type": "robot",
+    "cost": null,
+    "revenue": 1,
+    "speed": "average",
+    "pinchHitter": false,
+    "abilityText": null,
+    "hits": [
+      "double"
+    ],
+    "sourceImage": "httpssteamusercontentaakamaihdnetugc79198829531608574574DCC3D337E61D4184FD361A369E225D333F0A01.jpg"
+  },
+  {
+    "id": "ST-024",
+    "set": "base",
+    "category": "starter",
+    "name": "Rookie",
+    "team": "Los Angeles",
+    "tier": "rookie",
+    "type": "robot",
+    "cost": null,
+    "revenue": 1,
+    "speed": "slow",
+    "pinchHitter": false,
+    "abilityText": null,
+    "hits": [
+      "single",
+      "single"
+    ],
+    "sourceImage": "httpssteamusercontentaakamaihdnetugc79198829531608574574DCC3D337E61D4184FD361A369E225D333F0A01.jpg"
+  },
+  {
+    "id": "ST-025",
+    "set": "base",
+    "category": "starter",
+    "name": "Rookie",
+    "team": "Los Angeles",
+    "tier": "rookie",
+    "type": "robot",
+    "cost": null,
+    "revenue": 1,
+    "speed": "slow",
+    "pinchHitter": false,
+    "abilityText": null,
+    "hits": [
+      "single",
+      "single"
+    ],
+    "sourceImage": "httpssteamusercontentaakamaihdnetugc79198829531608574574DCC3D337E61D4184FD361A369E225D333F0A01.jpg"
+  },
+  {
+    "id": "ST-026",
+    "set": "base",
+    "category": "starter",
+    "name": "Veteran",
+    "team": "Los Angeles",
+    "tier": "veteran",
+    "type": "natural",
+    "cost": null,
+    "revenue": 1,
+    "speed": "average",
+    "pinchHitter": true,
+    "abilityText": "Leadoff: If this is your first card played, Single",
+    "hits": [],
+    "sourceImage": "httpssteamusercontentaakamaihdnetugc79198829531608574574DCC3D337E61D4184FD361A369E225D333F0A01.jpg"
+  },
+  {
+    "id": "ST-027",
+    "set": "base",
+    "category": "starter",
+    "name": "Veteran",
+    "team": "Los Angeles",
+    "tier": "veteran",
+    "type": "cyborg",
+    "cost": null,
+    "revenue": 2,
+    "speed": "average",
+    "pinchHitter": true,
+    "abilityText": "Curve: Cancel all Hits vs. a Robot",
+    "hits": [],
+    "sourceImage": "httpssteamusercontentaakamaihdnetugc79198829531608574574DCC3D337E61D4184FD361A369E225D333F0A01.jpg"
+  },
+  {
+    "id": "ST-028",
+    "set": "base",
+    "category": "starter",
+    "name": "Veteran",
+    "team": "Los Angeles",
+    "tier": "veteran",
+    "type": "robot",
+    "cost": null,
+    "revenue": 1,
+    "speed": "average",
+    "pinchHitter": false,
+    "abilityText": null,
+    "hits": [
+      "single",
+      "double"
+    ],
+    "sourceImage": "httpssteamusercontentaakamaihdnetugc79198829531608574574DCC3D337E61D4184FD361A369E225D333F0A01.jpg"
+  },
+  {
+    "id": "ST-029",
+    "set": "base",
+    "category": "starter",
+    "name": "Veteran",
+    "team": "Los Angeles",
+    "tier": "veteran",
+    "type": "natural",
+    "cost": null,
+    "revenue": 1,
+    "speed": "average",
+    "pinchHitter": false,
+    "abilityText": null,
+    "hits": [
+      "home_run"
+    ],
+    "sourceImage": "httpssteamusercontentaakamaihdnetugc79198829531608574574DCC3D337E61D4184FD361A369E225D333F0A01.jpg"
+  },
+  {
+    "id": "ST-030",
+    "set": "base",
+    "category": "starter",
+    "name": "Veteran",
+    "team": "Los Angeles",
+    "tier": "veteran",
+    "type": "robot",
+    "cost": null,
+    "revenue": 1,
+    "speed": "average",
+    "pinchHitter": false,
+    "abilityText": "Stolen Base: Advance all Average and Fast base runners 1 base",
+    "hits": [
+      "single",
+      "single"
+    ],
+    "sourceImage": "httpssteamusercontentaakamaihdnetugc79198829531608574574DCC3D337E61D4184FD361A369E225D333F0A01.jpg"
+  },
+  {
+    "id": "ST-031",
+    "set": "base",
+    "category": "starter",
+    "name": "Rookie",
+    "team": "Boston",
+    "tier": "rookie",
+    "type": "natural",
+    "cost": null,
+    "revenue": 0,
+    "speed": "average",
+    "pinchHitter": false,
+    "abilityText": "Glove: Cancel 1 Hit",
+    "hits": [
+      "single"
+    ],
+    "sourceImage": "httpssteamusercontentaakamaihdnetugc7919882953082131974A3EA2E997E0EB287BF0CBA605F32A628F492790.jpg"
+  },
+  {
+    "id": "ST-032",
+    "set": "base",
+    "category": "starter",
+    "name": "Rookie",
+    "team": "Boston",
+    "tier": "rookie",
+    "type": "cyborg",
+    "cost": null,
+    "revenue": 2,
+    "speed": "average",
+    "pinchHitter": true,
+    "abilityText": "Pick Off: Remove 1 base runner",
+    "hits": [],
+    "sourceImage": "httpssteamusercontentaakamaihdnetugc7919882953082131974A3EA2E997E0EB287BF0CBA605F32A628F492790.jpg"
+  },
+  {
+    "id": "ST-033",
+    "set": "base",
+    "category": "starter",
+    "name": "Rookie",
+    "team": "Boston",
+    "tier": "rookie",
+    "type": "natural",
+    "cost": null,
+    "revenue": 2,
+    "speed": "average",
+    "pinchHitter": false,
+    "abilityText": null,
+    "hits": [
+      "single"
+    ],
+    "sourceImage": "httpssteamusercontentaakamaihdnetugc7919882953082131974A3EA2E997E0EB287BF0CBA605F32A628F492790.jpg"
+  },
+  {
+    "id": "ST-034",
+    "set": "base",
+    "category": "starter",
+    "name": "Rookie",
+    "team": "Boston",
+    "tier": "rookie",
+    "type": "natural",
+    "cost": null,
+    "revenue": 2,
+    "speed": "average",
+    "pinchHitter": false,
+    "abilityText": null,
+    "hits": [
+      "single"
+    ],
+    "sourceImage": "httpssteamusercontentaakamaihdnetugc7919882953082131974A3EA2E997E0EB287BF0CBA605F32A628F492790.jpg"
+  },
+  {
+    "id": "ST-035",
+    "set": "base",
+    "category": "starter",
+    "name": "Rookie",
+    "team": "Boston",
+    "tier": "rookie",
+    "type": "natural",
+    "cost": null,
+    "revenue": 1,
+    "speed": "average",
+    "pinchHitter": true,
+    "abilityText": "Glove: Cancel 1 Hit",
+    "hits": [],
+    "sourceImage": "httpssteamusercontentaakamaihdnetugc7919882953082131974A3EA2E997E0EB287BF0CBA605F32A628F492790.jpg"
+  },
+  {
+    "id": "ST-036",
+    "set": "base",
+    "category": "starter",
+    "name": "Rookie",
+    "team": "Boston",
+    "tier": "rookie",
+    "type": "cyborg",
+    "cost": null,
+    "revenue": 1,
+    "speed": "average",
+    "pinchHitter": true,
+    "abilityText": "Walk: Change all Hits to Walks",
+    "hits": [],
+    "sourceImage": "httpssteamusercontentaakamaihdnetugc7919882953082131974A3EA2E997E0EB287BF0CBA605F32A628F492790.jpg"
+  },
+  {
+    "id": "ST-037",
+    "set": "base",
+    "category": "starter",
+    "name": "Rookie",
+    "team": "Boston",
+    "tier": "rookie",
+    "type": "robot",
+    "cost": null,
+    "revenue": 2,
+    "speed": "slow",
+    "pinchHitter": false,
+    "abilityText": null,
+    "hits": [
+      "double"
+    ],
+    "sourceImage": "httpssteamusercontentaakamaihdnetugc7919882953082131974A3EA2E997E0EB287BF0CBA605F32A628F492790.jpg"
+  },
+  {
+    "id": "ST-038",
+    "set": "base",
+    "category": "starter",
+    "name": "Rookie",
+    "team": "Boston",
+    "tier": "rookie",
+    "type": "robot",
+    "cost": null,
+    "revenue": 1,
+    "speed": "average",
+    "pinchHitter": false,
+    "abilityText": null,
+    "hits": [
+      "double"
+    ],
+    "sourceImage": "httpssteamusercontentaakamaihdnetugc7919882953082131974A3EA2E997E0EB287BF0CBA605F32A628F492790.jpg"
+  },
+  {
+    "id": "ST-039",
+    "set": "base",
+    "category": "starter",
+    "name": "Rookie",
+    "team": "Boston",
+    "tier": "rookie",
+    "type": "robot",
+    "cost": null,
+    "revenue": 1,
+    "speed": "slow",
+    "pinchHitter": false,
+    "abilityText": null,
+    "hits": [
+      "single",
+      "single"
+    ],
+    "sourceImage": "httpssteamusercontentaakamaihdnetugc7919882953082131974A3EA2E997E0EB287BF0CBA605F32A628F492790.jpg"
+  },
+  {
+    "id": "ST-040",
+    "set": "base",
+    "category": "starter",
+    "name": "Rookie",
+    "team": "Boston",
+    "tier": "rookie",
+    "type": "robot",
+    "cost": null,
+    "revenue": 1,
+    "speed": "slow",
+    "pinchHitter": false,
+    "abilityText": null,
+    "hits": [
+      "single",
+      "single"
+    ],
+    "sourceImage": "httpssteamusercontentaakamaihdnetugc7919882953082131974A3EA2E997E0EB287BF0CBA605F32A628F492790.jpg"
+  },
+  {
+    "id": "ST-041",
+    "set": "base",
+    "category": "starter",
+    "name": "Veteran",
+    "team": "Boston",
+    "tier": "veteran",
+    "type": "natural",
+    "cost": null,
+    "revenue": 0,
+    "speed": "average",
+    "pinchHitter": true,
+    "abilityText": "Clutch: Single (if runner on 2nd or 3rd)",
+    "hits": [
+      "single"
+    ],
+    "sourceImage": "httpssteamusercontentaakamaihdnetugc7919882953082131974A3EA2E997E0EB287BF0CBA605F32A628F492790.jpg"
+  },
+  {
+    "id": "ST-042",
+    "set": "base",
+    "category": "starter",
+    "name": "Veteran",
+    "team": "Boston",
+    "tier": "veteran",
+    "type": "cyborg",
+    "cost": null,
+    "revenue": 2,
+    "speed": "average",
+    "pinchHitter": true,
+    "abilityText": "Knuckle Ball: Reduce all Hits by 1 base",
+    "hits": [],
+    "sourceImage": "httpssteamusercontentaakamaihdnetugc7919882953082131974A3EA2E997E0EB287BF0CBA605F32A628F492790.jpg"
+  },
+  {
+    "id": "ST-043",
+    "set": "base",
+    "category": "starter",
+    "name": "Veteran",
+    "team": "Boston",
+    "tier": "veteran",
+    "type": "natural",
+    "cost": null,
+    "revenue": 1,
+    "speed": "slow",
+    "pinchHitter": false,
+    "abilityText": "Glove: Cancel 1 Hit",
+    "hits": [
+      "triple"
+    ],
+    "sourceImage": "httpssteamusercontentaakamaihdnetugc7919882953082131974A3EA2E997E0EB287BF0CBA605F32A628F492790.jpg"
+  },
+  {
+    "id": "ST-044",
+    "set": "base",
+    "category": "starter",
+    "name": "Veteran",
+    "team": "Boston",
+    "tier": "veteran",
+    "type": "robot",
+    "cost": null,
+    "revenue": 1,
+    "speed": "average",
+    "pinchHitter": false,
+    "abilityText": null,
+    "hits": [
+      "home_run"
+    ],
+    "sourceImage": "httpssteamusercontentaakamaihdnetugc7919882953082131974A3EA2E997E0EB287BF0CBA605F32A628F492790.jpg"
+  },
+  {
+    "id": "ST-045",
+    "set": "base",
+    "category": "starter",
+    "name": "Veteran",
+    "team": "Boston",
+    "tier": "veteran",
+    "type": "robot",
+    "cost": null,
+    "revenue": 2,
+    "speed": "fast",
+    "pinchHitter": false,
+    "abilityText": null,
+    "hits": [
+      "double"
+    ],
+    "sourceImage": "httpssteamusercontentaakamaihdnetugc7919882953082131974A3EA2E997E0EB287BF0CBA605F32A628F492790.jpg"
+  },
+  {
+    "id": "ST-046",
+    "set": "base",
+    "category": "starter",
+    "name": "Rookie",
+    "team": "New York",
+    "tier": "rookie",
+    "type": "natural",
+    "cost": null,
+    "revenue": 0,
+    "speed": "average",
+    "pinchHitter": false,
+    "abilityText": "Glove: Cancel 1 Hit",
+    "hits": [
+      "single"
+    ],
+    "sourceImage": "httpssteamusercontentaakamaihdnetugc791988035055676465886CFD6F4A460F4C361D89102F3B89B7946EFA59.jpg"
+  },
+  {
+    "id": "ST-047",
+    "set": "base",
+    "category": "starter",
+    "name": "Rookie",
+    "team": "New York",
+    "tier": "rookie",
+    "type": "cyborg",
+    "cost": null,
+    "revenue": 2,
+    "speed": "average",
+    "pinchHitter": true,
+    "abilityText": "Pick Off: Remove 1 base runner",
+    "hits": [],
+    "sourceImage": "httpssteamusercontentaakamaihdnetugc791988035055676465886CFD6F4A460F4C361D89102F3B89B7946EFA59.jpg"
+  },
+  {
+    "id": "ST-048",
+    "set": "base",
+    "category": "starter",
+    "name": "Rookie",
+    "team": "New York",
+    "tier": "rookie",
+    "type": "natural",
+    "cost": null,
+    "revenue": 2,
+    "speed": "average",
+    "pinchHitter": false,
+    "abilityText": null,
+    "hits": [
+      "single"
+    ],
+    "sourceImage": "httpssteamusercontentaakamaihdnetugc791988035055676465886CFD6F4A460F4C361D89102F3B89B7946EFA59.jpg"
+  },
+  {
+    "id": "ST-049",
+    "set": "base",
+    "category": "starter",
+    "name": "Rookie",
+    "team": "New York",
+    "tier": "rookie",
+    "type": "natural",
+    "cost": null,
+    "revenue": 2,
+    "speed": "average",
+    "pinchHitter": false,
+    "abilityText": null,
+    "hits": [
+      "single"
+    ],
+    "sourceImage": "httpssteamusercontentaakamaihdnetugc791988035055676465886CFD6F4A460F4C361D89102F3B89B7946EFA59.jpg"
+  },
+  {
+    "id": "ST-050",
+    "set": "base",
+    "category": "starter",
+    "name": "Rookie",
+    "team": "New York",
+    "tier": "rookie",
+    "type": "natural",
+    "cost": null,
+    "revenue": 1,
+    "speed": "average",
+    "pinchHitter": true,
+    "abilityText": "Glove: Cancel 1 Hit",
+    "hits": [],
+    "sourceImage": "httpssteamusercontentaakamaihdnetugc791988035055676465886CFD6F4A460F4C361D89102F3B89B7946EFA59.jpg"
+  },
+  {
+    "id": "ST-051",
+    "set": "base",
+    "category": "starter",
+    "name": "Rookie",
+    "team": "New York",
+    "tier": "rookie",
+    "type": "cyborg",
+    "cost": null,
+    "revenue": 1,
+    "speed": "average",
+    "pinchHitter": true,
+    "abilityText": "Walk: Change all Hits to Walks",
+    "hits": [],
+    "sourceImage": "httpssteamusercontentaakamaihdnetugc791988035055676465886CFD6F4A460F4C361D89102F3B89B7946EFA59.jpg"
+  },
+  {
+    "id": "ST-052",
+    "set": "base",
+    "category": "starter",
+    "name": "Rookie",
+    "team": "New York",
+    "tier": "rookie",
+    "type": "robot",
+    "cost": null,
+    "revenue": 2,
+    "speed": "slow",
+    "pinchHitter": false,
+    "abilityText": null,
+    "hits": [
+      "double"
+    ],
+    "sourceImage": "httpssteamusercontentaakamaihdnetugc791988035055676465886CFD6F4A460F4C361D89102F3B89B7946EFA59.jpg"
+  },
+  {
+    "id": "ST-053",
+    "set": "base",
+    "category": "starter",
+    "name": "Rookie",
+    "team": "New York",
+    "tier": "rookie",
+    "type": "robot",
+    "cost": null,
+    "revenue": 1,
+    "speed": "average",
+    "pinchHitter": false,
+    "abilityText": null,
+    "hits": [
+      "double"
+    ],
+    "sourceImage": "httpssteamusercontentaakamaihdnetugc791988035055676465886CFD6F4A460F4C361D89102F3B89B7946EFA59.jpg"
+  },
+  {
+    "id": "ST-054",
+    "set": "base",
+    "category": "starter",
+    "name": "Rookie",
+    "team": "New York",
+    "tier": "rookie",
+    "type": "robot",
+    "cost": null,
+    "revenue": 1,
+    "speed": "slow",
+    "pinchHitter": false,
+    "abilityText": null,
+    "hits": [
+      "single",
+      "single"
+    ],
+    "sourceImage": "httpssteamusercontentaakamaihdnetugc791988035055676465886CFD6F4A460F4C361D89102F3B89B7946EFA59.jpg"
+  },
+  {
+    "id": "ST-055",
+    "set": "base",
+    "category": "starter",
+    "name": "Rookie",
+    "team": "New York",
+    "tier": "rookie",
+    "type": "robot",
+    "cost": null,
+    "revenue": 1,
+    "speed": "slow",
+    "pinchHitter": false,
+    "abilityText": null,
+    "hits": [
+      "single",
+      "single"
+    ],
+    "sourceImage": "httpssteamusercontentaakamaihdnetugc791988035055676465886CFD6F4A460F4C361D89102F3B89B7946EFA59.jpg"
+  },
+  {
+    "id": "ST-056",
+    "set": "base",
+    "category": "starter",
+    "name": "Veteran",
+    "team": "New York",
+    "tier": "veteran",
+    "type": "natural",
+    "cost": null,
+    "revenue": 1,
+    "speed": "average",
+    "pinchHitter": false,
+    "abilityText": "Double Play: Remove up to 2 base runners (no Fast)",
+    "hits": [
+      "single"
+    ],
+    "sourceImage": "httpssteamusercontentaakamaihdnetugc791988035055676465886CFD6F4A460F4C361D89102F3B89B7946EFA59.jpg"
+  },
+  {
+    "id": "ST-057",
+    "set": "base",
+    "category": "starter",
+    "name": "Veteran",
+    "team": "New York",
+    "tier": "veteran",
+    "type": "cyborg",
+    "cost": null,
+    "revenue": 1,
+    "speed": "average",
+    "pinchHitter": false,
+    "abilityText": "Fastball: Cancel all Hits vs. a Natural",
+    "hits": [
+      "single"
+    ],
+    "sourceImage": "httpssteamusercontentaakamaihdnetugc791988035055676465886CFD6F4A460F4C361D89102F3B89B7946EFA59.jpg"
+  },
+  {
+    "id": "ST-058",
+    "set": "base",
+    "category": "starter",
+    "name": "Veteran",
+    "team": "New York",
+    "tier": "veteran",
+    "type": "robot",
+    "cost": null,
+    "revenue": 2,
+    "speed": "slow",
+    "pinchHitter": true,
+    "abilityText": "Quick Eye: Single (if vs. Cyborg)",
+    "hits": [
+      "double"
+    ],
+    "sourceImage": "httpssteamusercontentaakamaihdnetugc791988035055676465886CFD6F4A460F4C361D89102F3B89B7946EFA59.jpg"
+  },
+  {
+    "id": "ST-059",
+    "set": "base",
+    "category": "starter",
+    "name": "Veteran",
+    "team": "New York",
+    "tier": "veteran",
+    "type": "natural",
+    "cost": null,
+    "revenue": 0,
+    "speed": "average",
+    "pinchHitter": true,
+    "abilityText": null,
+    "hits": [
+      "home_run"
+    ],
+    "sourceImage": "httpssteamusercontentaakamaihdnetugc791988035055676465886CFD6F4A460F4C361D89102F3B89B7946EFA59.jpg"
+  },
+  {
+    "id": "ST-060",
+    "set": "base",
+    "category": "starter",
+    "name": "Veteran",
+    "team": "New York",
+    "tier": "veteran",
+    "type": "robot",
+    "cost": null,
+    "revenue": 2,
+    "speed": "average",
+    "pinchHitter": false,
+    "abilityText": null,
+    "hits": [
+      "triple"
+    ],
+    "sourceImage": "httpssteamusercontentaakamaihdnetugc791988035055676465886CFD6F4A460F4C361D89102F3B89B7946EFA59.jpg"
+  },
+  {
+    "id": "FA-061",
+    "set": "base",
+    "category": "free_agent",
+    "name": "Bucky Cano",
+    "team": "Baltimore",
+    "tier": null,
+    "type": "natural",
+    "cost": 7,
+    "revenue": 2,
+    "speed": "average",
+    "pinchHitter": false,
+    "abilityText": "Double Play: Remove up to 2 base runners (no Fast)",
+    "hits": [
+      "single",
+      "single"
+    ],
+    "sourceImage": "httpssteamusercontentaakamaihdnetugc7919882953161101764CDE9DCB2510284137C9A55E2433F076C5E8ADB9.jpg"
+  },
+  {
+    "id": "FA-062",
+    "set": "base",
+    "category": "free_agent",
+    "name": "Peeyee Rizzuto",
+    "team": "Texas",
+    "tier": null,
+    "type": "natural",
+    "cost": 4,
+    "revenue": 1,
+    "speed": "fast",
+    "pinchHitter": true,
+    "abilityText": "Glove: Cancel 1 Hit",
+    "hits": [
+      "single"
+    ],
+    "sourceImage": "httpssteamusercontentaakamaihdnetugc791988295316150361EF016F36F9E72250761EBC93924027171C11C3B3.jpg"
+  },
+  {
+    "id": "FA-063",
+    "set": "base",
+    "category": "free_agent",
+    "name": "Ichiro Matsui",
+    "team": "Seattle",
+    "tier": null,
+    "type": "natural",
+    "cost": 6,
+    "revenue": 1,
+    "speed": "fast",
+    "pinchHitter": true,
+    "abilityText": "Glove: Cancel 1 Hit",
+    "hits": [
+      "single",
+      "single"
+    ],
+    "sourceImage": "httpssteamusercontentaakamaihdnetugc791988295316122721DAA188250E9A90014FBBBB4FE1878CEA496C3DF1.jpg"
+  },
+  {
+    "id": "FA-064",
+    "set": "base",
+    "category": "free_agent",
+    "name": "Brooks Nettles",
+    "team": "Detroit",
+    "tier": null,
+    "type": "natural",
+    "cost": 6,
+    "revenue": 1,
+    "speed": "average",
+    "pinchHitter": false,
+    "abilityText": "Clutch: Single (if runner on 2nd or 3rd)",
+    "hits": [
+      "single",
+      "single"
+    ],
+    "sourceImage": "httpssteamusercontentaakamaihdnetugc791988295316122721DAA188250E9A90014FBBBB4FE1878CEA496C3DF1.jpg"
+  },
+  {
+    "id": "FA-065",
+    "set": "base",
+    "category": "free_agent",
+    "name": "Frankie Foxx",
+    "team": "Pittsburgh",
+    "tier": null,
+    "type": "natural",
+    "cost": 4,
+    "revenue": 2,
+    "speed": "slow",
+    "pinchHitter": true,
+    "abilityText": "Glove: Cancel 1 Hit",
+    "hits": [
+      "double"
+    ],
+    "sourceImage": "httpssteamusercontentaakamaihdnetugc79198829531608974984ACD9A72183475A9105DE1E7D4F3F14F2986638.jpg"
+  },
+  {
+    "id": "FA-066",
+    "set": "base",
+    "category": "free_agent",
+    "name": "Maury Aparicio",
+    "team": "San Francisco",
+    "tier": null,
+    "type": "natural",
+    "cost": 5,
+    "revenue": 1,
+    "speed": "fast",
+    "pinchHitter": true,
+    "abilityText": "Double Play: Remove up to 2 base runners (no Fast)",
+    "hits": [
+      "single"
+    ],
+    "sourceImage": "httpssteamusercontentaakamaihdnetugc79198829531608974984ACD9A72183475A9105DE1E7D4F3F14F2986638.jpg"
+  },
+  {
+    "id": "FA-067",
+    "set": "base",
+    "category": "free_agent",
+    "name": "Mickey Maris",
+    "team": "New York",
+    "tier": null,
+    "type": "natural",
+    "cost": 7,
+    "revenue": 0,
+    "speed": "average",
+    "pinchHitter": false,
+    "abilityText": "Glove: Cancel 1 Hit",
+    "hits": [
+      "single",
+      "home_run"
+    ],
+    "sourceImage": "httpssteamusercontentaakamaihdnetugc7919882953161101764CDE9DCB2510284137C9A55E2433F076C5E8ADB9.jpg"
+  },
+  {
+    "id": "FA-068",
+    "set": "base",
+    "category": "free_agent",
+    "name": "Babe Bench",
+    "team": "Cincinnati",
+    "tier": null,
+    "type": "natural",
+    "cost": 5,
+    "revenue": 1,
+    "speed": "slow",
+    "pinchHitter": false,
+    "abilityText": "Glove: Cancel 1 Hit",
+    "hits": [
+      "single",
+      "double"
+    ],
+    "sourceImage": "httpssteamusercontentaakamaihdnetugc7919882953161101764CDE9DCB2510284137C9A55E2433F076C5E8ADB9.jpg"
+  },
+  {
+    "id": "FA-069",
+    "set": "base",
+    "category": "free_agent",
+    "name": "Mark Lopes",
+    "team": "Detroit",
+    "tier": null,
+    "type": "natural",
+    "cost": 5,
+    "revenue": 3,
+    "speed": "average",
+    "pinchHitter": false,
+    "abilityText": null,
+    "hits": [
+      "single",
+      "single"
+    ],
+    "sourceImage": "httpssteamusercontentaakamaihdnetugc791988295316122721DAA188250E9A90014FBBBB4FE1878CEA496C3DF1.jpg"
+  },
+  {
+    "id": "FA-070",
+    "set": "base",
+    "category": "free_agent",
+    "name": "Derek Belanger",
+    "team": "Kansas City",
+    "tier": null,
+    "type": "natural",
+    "cost": 5,
+    "revenue": 4,
+    "speed": "average",
+    "pinchHitter": true,
+    "abilityText": "Double Play: Remove up to 2 base runners (no Fast)",
+    "hits": [],
+    "sourceImage": "httpssteamusercontentaakamaihdnetugc7919882953161101764CDE9DCB2510284137C9A55E2433F076C5E8ADB9.jpg"
+  },
+  {
+    "id": "FA-071",
+    "set": "base",
+    "category": "free_agent",
+    "name": "Joe Mays",
+    "team": "Pittsburgh",
+    "tier": null,
+    "type": "natural",
+    "cost": 5,
+    "revenue": 1,
+    "speed": "average",
+    "pinchHitter": true,
+    "abilityText": "Clutch: Single (if runner on 2nd or 3rd)",
+    "hits": [
+      "double"
+    ],
+    "sourceImage": "httpssteamusercontentaakamaihdnetugc79198829531608974984ACD9A72183475A9105DE1E7D4F3F14F2986638.jpg"
+  },
+  {
+    "id": "FA-072",
+    "set": "base",
+    "category": "free_agent",
+    "name": "Boog Banks",
+    "team": "Chicago",
+    "tier": null,
+    "type": "natural",
+    "cost": 5,
+    "revenue": 2,
+    "speed": "average",
+    "pinchHitter": true,
+    "abilityText": "Glove: Cancel 1 Hit",
+    "hits": [
+      "double"
+    ],
+    "sourceImage": "httpssteamusercontentaakamaihdnetugc791988295316122721DAA188250E9A90014FBBBB4FE1878CEA496C3DF1.jpg"
+  },
+  {
+    "id": "FA-073",
+    "set": "base",
+    "category": "free_agent",
+    "name": "Dave Trout",
+    "team": "San Francisco",
+    "tier": null,
+    "type": "natural",
+    "cost": 5,
+    "revenue": 3,
+    "speed": "average",
+    "pinchHitter": true,
+    "abilityText": null,
+    "hits": [
+      "triple"
+    ],
+    "sourceImage": "httpssteamusercontentaakamaihdnetugc79198829531608974984ACD9A72183475A9105DE1E7D4F3F14F2986638.jpg"
+  },
+  {
+    "id": "FA-074",
+    "set": "base",
+    "category": "free_agent",
+    "name": "Josh Lynn",
+    "team": "Boston",
+    "tier": null,
+    "type": "natural",
+    "cost": 5,
+    "revenue": 2,
+    "speed": "fast",
+    "pinchHitter": true,
+    "abilityText": "Leadoff: If this is your first card played, Single",
+    "hits": [],
+    "sourceImage": "httpssteamusercontentaakamaihdnetugc79198829531608974984ACD9A72183475A9105DE1E7D4F3F14F2986638.jpg"
+  },
+  {
+    "id": "FA-075",
+    "set": "base",
+    "category": "free_agent",
+    "name": "Ozzie Foxx",
+    "team": "Chicago",
+    "tier": null,
+    "type": "natural",
+    "cost": 5,
+    "revenue": 2,
+    "speed": "average",
+    "pinchHitter": true,
+    "abilityText": "Double Play: Remove up to 2 base runners (no Fast)",
+    "hits": [
+      "single"
+    ],
+    "sourceImage": "httpssteamusercontentaakamaihdnetugc791988295316122721DAA188250E9A90014FBBBB4FE1878CEA496C3DF1.jpg"
+  },
+  {
+    "id": "FA-076",
+    "set": "base",
+    "category": "free_agent",
+    "name": "Nellie McGhee",
+    "team": "Pittsburgh",
+    "tier": null,
+    "type": "natural",
+    "cost": 5,
+    "revenue": 2,
+    "speed": "fast",
+    "pinchHitter": true,
+    "abilityText": "Glove: Cancel 1 Hit",
+    "hits": [
+      "single"
+    ],
+    "sourceImage": "httpssteamusercontentaakamaihdnetugc79198829531608974984ACD9A72183475A9105DE1E7D4F3F14F2986638.jpg"
+  },
+  {
+    "id": "FA-077",
+    "set": "base",
+    "category": "free_agent",
+    "name": "Bucky Tulo",
+    "team": "Boston",
+    "tier": null,
+    "type": "natural",
+    "cost": 6,
+    "revenue": 1,
+    "speed": "fast",
+    "pinchHitter": true,
+    "abilityText": "Glove: Cancel 1 Hit",
+    "hits": [
+      "triple"
+    ],
+    "sourceImage": "httpssteamusercontentaakamaihdnetugc7919882953161101764CDE9DCB2510284137C9A55E2433F076C5E8ADB9.jpg"
+  },
+  {
+    "id": "FA-078",
+    "set": "base",
+    "category": "free_agent",
+    "name": "Moose Giambi",
+    "team": "New York",
+    "tier": null,
+    "type": "natural",
+    "cost": 7,
+    "revenue": 2,
+    "speed": "average",
+    "pinchHitter": true,
+    "abilityText": "Glove: Cancel 1 Hit",
+    "hits": [
+      "home_run"
+    ],
+    "sourceImage": "httpssteamusercontentaakamaihdnetugc791988295316122721DAA188250E9A90014FBBBB4FE1878CEA496C3DF1.jpg"
+  },
+  {
+    "id": "FA-079",
+    "set": "base",
+    "category": "free_agent",
+    "name": "Hank Hornsby",
+    "team": "Atlanta",
+    "tier": null,
+    "type": "natural",
+    "cost": 8,
+    "revenue": 3,
+    "speed": "fast",
+    "pinchHitter": true,
+    "abilityText": "Leadoff: If this is your first card played, Single",
+    "hits": [
+      "single"
+    ],
+    "sourceImage": "httpssteamusercontentaakamaihdnetugc7919882953161101764CDE9DCB2510284137C9A55E2433F076C5E8ADB9.jpg"
+  },
+  {
+    "id": "FA-080",
+    "set": "base",
+    "category": "free_agent",
+    "name": "Ty Terry",
+    "team": "Pittsburgh",
+    "tier": null,
+    "type": "natural",
+    "cost": 8,
+    "revenue": 2,
+    "speed": "average",
+    "pinchHitter": true,
+    "abilityText": "Clutch: Single (if runner on 2nd or 3rd)",
+    "hits": [
+      "home_run"
+    ],
+    "sourceImage": "httpssteamusercontentaakamaihdnetugc791988295316122721DAA188250E9A90014FBBBB4FE1878CEA496C3DF1.jpg"
+  },
+  {
+    "id": "FA-081",
+    "set": "base",
+    "category": "free_agent",
+    "name": "Troy Jeter",
+    "team": "New York",
+    "tier": null,
+    "type": "natural",
+    "cost": 7,
+    "revenue": 3,
+    "speed": "average",
+    "pinchHitter": false,
+    "abilityText": "Glove: Cancel 1 Hit",
+    "hits": [
+      "single",
+      "single"
+    ],
+    "sourceImage": "httpssteamusercontentaakamaihdnetugc791988295316122721DAA188250E9A90014FBBBB4FE1878CEA496C3DF1.jpg"
+  },
+  {
+    "id": "FA-082",
+    "set": "base",
+    "category": "free_agent",
+    "name": "Willie McGwire",
+    "team": "Boston",
+    "tier": null,
+    "type": "natural",
+    "cost": 8,
+    "revenue": 2,
+    "speed": "fast",
+    "pinchHitter": false,
+    "abilityText": "Glove: Cancel 1 Hit",
+    "hits": [
+      "single",
+      "double"
+    ],
+    "sourceImage": "httpssteamusercontentaakamaihdnetugc7919882953161101764CDE9DCB2510284137C9A55E2433F076C5E8ADB9.jpg"
+  },
+  {
+    "id": "FA-083",
+    "set": "base",
+    "category": "free_agent",
+    "name": "Barry Sosa",
+    "team": "Chicago",
+    "tier": null,
+    "type": "natural",
+    "cost": 9,
+    "revenue": 1,
+    "speed": "average",
+    "pinchHitter": false,
+    "abilityText": null,
+    "hits": [
+      "home_run",
+      "home_run"
+    ],
+    "sourceImage": "httpssteamusercontentaakamaihdnetugc791988295316122721DAA188250E9A90014FBBBB4FE1878CEA496C3DF1.jpg"
+  },
+  {
+    "id": "FA-084",
+    "set": "base",
+    "category": "free_agent",
+    "name": "Dizzy Drysdale",
+    "team": "New York",
+    "tier": null,
+    "type": "cyborg",
+    "cost": 5,
+    "revenue": 2,
+    "speed": "average",
+    "pinchHitter": true,
+    "abilityText": "Spit Ball: Cancel all Hits vs. a Cyborg",
+    "hits": [
+      "double"
+    ],
+    "sourceImage": "httpssteamusercontentaakamaihdnetugc791988295316122721DAA188250E9A90014FBBBB4FE1878CEA496C3DF1.jpg"
+  },
+  {
+    "id": "FA-085",
+    "set": "base",
+    "category": "free_agent",
+    "name": "Hoyt Niekro",
+    "team": "St. Louis",
+    "tier": null,
+    "type": "cyborg",
+    "cost": 5,
+    "revenue": 2,
+    "speed": "average",
+    "pinchHitter": true,
+    "abilityText": "Knuckle Ball: Reduce all Hits by 1 base",
+    "hits": [
+      "single"
+    ],
+    "sourceImage": "httpssteamusercontentaakamaihdnetugc791988295316122721DAA188250E9A90014FBBBB4FE1878CEA496C3DF1.jpg"
+  },
+  {
+    "id": "FA-086",
+    "set": "base",
+    "category": "free_agent",
+    "name": "Blue Moon Odoul",
+    "team": "Seattle",
+    "tier": null,
+    "type": "cyborg",
+    "cost": 6,
+    "revenue": 3,
+    "speed": "average",
+    "pinchHitter": true,
+    "abilityText": "Fastball: Cancel all Hits vs. a Natural",
+    "hits": [
+      "single"
+    ],
+    "sourceImage": "httpssteamusercontentaakamaihdnetugc7919882953161101764CDE9DCB2510284137C9A55E2433F076C5E8ADB9.jpg"
+  },
+  {
+    "id": "FA-087",
+    "set": "base",
+    "category": "free_agent",
+    "name": "Satchel Seaver",
+    "team": "New York",
+    "tier": null,
+    "type": "cyborg",
+    "cost": 6,
+    "revenue": 3,
+    "speed": "average",
+    "pinchHitter": true,
+    "abilityText": "Fastball: Cancel all Hits vs. a Natural",
+    "hits": [
+      "single"
+    ],
+    "sourceImage": "httpssteamusercontentaakamaihdnetugc79198829531608974984ACD9A72183475A9105DE1E7D4F3F14F2986638.jpg"
+  },
+  {
+    "id": "FA-088",
+    "set": "base",
+    "category": "free_agent",
+    "name": "Juan Spahn",
+    "team": "St. Louis",
+    "tier": null,
+    "type": "cyborg",
+    "cost": 8,
+    "revenue": 2,
+    "speed": "average",
+    "pinchHitter": false,
+    "abilityText": "Curve: Cancel all Hits vs. a Robot",
+    "hits": [
+      "double",
+      "single"
+    ],
+    "sourceImage": "httpssteamusercontentaakamaihdnetugc79198829531608974984ACD9A72183475A9105DE1E7D4F3F14F2986638.jpg"
+  },
+  {
+    "id": "FA-089",
+    "set": "base",
+    "category": "free_agent",
+    "name": "CC Clemens",
+    "team": "Boston",
+    "tier": null,
+    "type": "cyborg",
+    "cost": 7,
+    "revenue": 2,
+    "speed": "average",
+    "pinchHitter": true,
+    "abilityText": "Fastball: Cancel all Hits vs. a Natural",
+    "hits": [
+      "triple"
+    ],
+    "sourceImage": "httpssteamusercontentaakamaihdnetugc791988295316122721DAA188250E9A90014FBBBB4FE1878CEA496C3DF1.jpg"
+  },
+  {
+    "id": "FA-090",
+    "set": "base",
+    "category": "free_agent",
+    "name": "Hideo Tanaka",
+    "team": "Cleveland",
+    "tier": null,
+    "type": "cyborg",
+    "cost": 8,
+    "revenue": 0,
+    "speed": "average",
+    "pinchHitter": false,
+    "abilityText": "Curve: Cancel all Hits vs. a Robot",
+    "hits": [
+      "single",
+      "single",
+      "single"
+    ],
+    "sourceImage": "httpssteamusercontentaakamaihdnetugc791988295316122721DAA188250E9A90014FBBBB4FE1878CEA496C3DF1.jpg"
+  },
+  {
+    "id": "FA-091",
+    "set": "base",
+    "category": "free_agent",
+    "name": "Nolan Gooden",
+    "team": "New York",
+    "tier": null,
+    "type": "cyborg",
+    "cost": 5,
+    "revenue": 2,
+    "speed": "average",
+    "pinchHitter": true,
+    "abilityText": "Walk: Change all Hits to Walks",
+    "hits": [
+      "double"
+    ],
+    "sourceImage": "httpssteamusercontentaakamaihdnetugc791988295316122721DAA188250E9A90014FBBBB4FE1878CEA496C3DF1.jpg"
+  },
+  {
+    "id": "FA-092",
+    "set": "base",
+    "category": "free_agent",
+    "name": "Daisuke Darvish",
+    "team": "Texas",
+    "tier": null,
+    "type": "cyborg",
+    "cost": 7,
+    "revenue": 1,
+    "speed": "average",
+    "pinchHitter": false,
+    "abilityText": "Curve: Cancel all Hits vs. a Robot",
+    "hits": [
+      "single",
+      "double"
+    ],
+    "sourceImage": "httpssteamusercontentaakamaihdnetugc7919882953161101764CDE9DCB2510284137C9A55E2433F076C5E8ADB9.jpg"
+  },
+  {
+    "id": "FA-093",
+    "set": "base",
+    "category": "free_agent",
+    "name": "Sandy Gibson",
+    "team": "Pittsburgh",
+    "tier": null,
+    "type": "cyborg",
+    "cost": 7,
+    "revenue": 1,
+    "speed": "average",
+    "pinchHitter": true,
+    "abilityText": "Fastball: Cancel all Hits vs. a Natural",
+    "hits": [
+      "home_run"
+    ],
+    "sourceImage": "httpssteamusercontentaakamaihdnetugc791988295316122721DAA188250E9A90014FBBBB4FE1878CEA496C3DF1.jpg"
+  },
+  {
+    "id": "FA-094",
+    "set": "base",
+    "category": "free_agent",
+    "name": "Yu Nomo",
+    "team": "Baltimore",
+    "tier": null,
+    "type": "cyborg",
+    "cost": 8,
+    "revenue": 3,
+    "speed": "average",
+    "pinchHitter": true,
+    "abilityText": "Knuckle Ball: Reduce all Hits by 1 base",
+    "hits": [
+      "triple"
+    ],
+    "sourceImage": "httpssteamusercontentaakamaihdnetugc791988295316122721DAA188250E9A90014FBBBB4FE1878CEA496C3DF1.jpg"
+  },
+  {
+    "id": "FA-095",
+    "set": "base",
+    "category": "free_agent",
+    "name": "Z Bat",
+    "team": "Boston",
+    "tier": null,
+    "type": "robot",
+    "cost": 5,
+    "revenue": 0,
+    "speed": "slow",
+    "pinchHitter": false,
+    "abilityText": null,
+    "hits": [
+      "double",
+      "home_run"
+    ],
+    "sourceImage": "httpssteamusercontentaakamaihdnetugc791988295316122721DAA188250E9A90014FBBBB4FE1878CEA496C3DF1.jpg"
+  },
+  {
+    "id": "FA-096",
+    "set": "base",
+    "category": "free_agent",
+    "name": "Wiffle",
+    "team": "Seattle",
+    "tier": null,
+    "type": "robot",
+    "cost": 4,
+    "revenue": 0,
+    "speed": "slow",
+    "pinchHitter": false,
+    "abilityText": null,
+    "hits": [
+      "single",
+      "single",
+      "single"
+    ],
+    "sourceImage": "httpssteamusercontentaakamaihdnetugc791988295316122721DAA188250E9A90014FBBBB4FE1878CEA496C3DF1.jpg"
+  },
+  {
+    "id": "FA-097",
+    "set": "base",
+    "category": "free_agent",
+    "name": "Model T",
+    "team": "Cleveland",
+    "tier": null,
+    "type": "robot",
+    "cost": 6,
+    "revenue": 0,
+    "speed": "slow",
+    "pinchHitter": false,
+    "abilityText": null,
+    "hits": [
+      "single",
+      "double",
+      "double"
+    ],
+    "sourceImage": "httpssteamusercontentaakamaihdnetugc791988295316122721DAA188250E9A90014FBBBB4FE1878CEA496C3DF1.jpg"
+  },
+  {
+    "id": "FA-098",
+    "set": "base",
+    "category": "free_agent",
+    "name": "Bat 90",
+    "team": "Cincinnati",
+    "tier": null,
+    "type": "robot",
+    "cost": 4,
+    "revenue": 1,
+    "speed": "slow",
+    "pinchHitter": true,
+    "abilityText": "Quick Eye: Single (if vs. Cyborg)",
+    "hits": [
+      "home_run"
+    ],
+    "sourceImage": "httpssteamusercontentaakamaihdnetugc791988295316122721DAA188250E9A90014FBBBB4FE1878CEA496C3DF1.jpg"
+  },
+  {
+    "id": "FA-099",
+    "set": "base",
+    "category": "free_agent",
+    "name": "Sonic Bat",
+    "team": "Cleveland",
+    "tier": null,
+    "type": "robot",
+    "cost": 5,
+    "revenue": 2,
+    "speed": "average",
+    "pinchHitter": true,
+    "abilityText": "Quick Eye: Triple (if vs. Cyborg)",
+    "hits": [
+      "single"
+    ],
+    "sourceImage": "httpssteamusercontentaakamaihdnetugc79198829531608974984ACD9A72183475A9105DE1E7D4F3F14F2986638.jpg"
+  },
+  {
+    "id": "FA-100",
+    "set": "base",
+    "category": "free_agent",
+    "name": "Big Mo",
+    "team": "San Francisco",
+    "tier": null,
+    "type": "robot",
+    "cost": 5,
+    "revenue": 0,
+    "speed": "slow",
+    "pinchHitter": false,
+    "abilityText": "Quick Eye: Homerun (if vs. Cyborg)",
+    "hits": [
+      "single",
+      "single"
+    ],
+    "sourceImage": "httpssteamusercontentaakamaihdnetugc79198829531608974984ACD9A72183475A9105DE1E7D4F3F14F2986638.jpg"
+  },
+  {
+    "id": "FA-101",
+    "set": "base",
+    "category": "free_agent",
+    "name": "Bat 90",
+    "team": "Cincinnati",
+    "tier": null,
+    "type": "robot",
+    "cost": 4,
+    "revenue": 1,
+    "speed": "slow",
+    "pinchHitter": true,
+    "abilityText": "Quick Eye: Single (if vs. Cyborg)",
+    "hits": [
+      "home_run"
+    ],
+    "sourceImage": "httpssteamusercontentaakamaihdnetugc79198829531608974984ACD9A72183475A9105DE1E7D4F3F14F2986638.jpg"
+  },
+  {
+    "id": "FA-102",
+    "set": "base",
+    "category": "free_agent",
+    "name": "Kong 35",
+    "team": "Los Angeles",
+    "tier": null,
+    "type": "robot",
+    "cost": 6,
+    "revenue": 1,
+    "speed": "slow",
+    "pinchHitter": true,
+    "abilityText": "Clutch: Single (if runner on 2nd or 3rd)",
+    "hits": [
+      "home_run"
+    ],
+    "sourceImage": "httpssteamusercontentaakamaihdnetugc79198829531608974984ACD9A72183475A9105DE1E7D4F3F14F2986638.jpg"
+  },
+  {
+    "id": "FA-103",
+    "set": "base",
+    "category": "free_agent",
+    "name": "Sprint 36",
+    "team": "Philadelphia",
+    "tier": null,
+    "type": "robot",
+    "cost": 6,
+    "revenue": 1,
+    "speed": "fast",
+    "pinchHitter": false,
+    "abilityText": "Stolen Base: Advance all Average and Fast base runners 1 base",
+    "hits": [
+      "single",
+      "double"
+    ],
+    "sourceImage": "httpssteamusercontentaakamaihdnetugc79198829531608974984ACD9A72183475A9105DE1E7D4F3F14F2986638.jpg"
+  },
+  {
+    "id": "FA-104",
+    "set": "base",
+    "category": "free_agent",
+    "name": "Speedo 42",
+    "team": "Pittsburgh",
+    "tier": null,
+    "type": "robot",
+    "cost": 6,
+    "revenue": 1,
+    "speed": "fast",
+    "pinchHitter": false,
+    "abilityText": "Stolen Base: Advance all Average and Fast base runners 1 base",
+    "hits": [
+      "single",
+      "double"
+    ],
+    "sourceImage": "httpssteamusercontentaakamaihdnetugc791988295316122721DAA188250E9A90014FBBBB4FE1878CEA496C3DF1.jpg"
+  },
+  {
+    "id": "FA-105",
+    "set": "base",
+    "category": "free_agent",
+    "name": "Speedbot",
+    "team": "Kansas City",
+    "tier": null,
+    "type": "robot",
+    "cost": 6,
+    "revenue": 1,
+    "speed": "fast",
+    "pinchHitter": false,
+    "abilityText": null,
+    "hits": [
+      "single",
+      "triple"
+    ],
+    "sourceImage": "httpssteamusercontentaakamaihdnetugc79198829531608974984ACD9A72183475A9105DE1E7D4F3F14F2986638.jpg"
+  },
+  {
+    "id": "FA-106",
+    "set": "base",
+    "category": "free_agent",
+    "name": "Bat 44",
+    "team": "Cincinnati",
+    "tier": null,
+    "type": "robot",
+    "cost": 5,
+    "revenue": 2,
+    "speed": "slow",
+    "pinchHitter": false,
+    "abilityText": "Stolen Base: Advance all Average and Fast base runners 1 base",
+    "hits": [
+      "single",
+      "double"
+    ],
+    "sourceImage": "httpssteamusercontentaakamaihdnetugc79198829531608974984ACD9A72183475A9105DE1E7D4F3F14F2986638.jpg"
+  },
+  {
+    "id": "FA-107",
+    "set": "base",
+    "category": "free_agent",
+    "name": "Bat 100 L",
+    "team": "Chicago",
+    "tier": null,
+    "type": "robot",
+    "cost": 6,
+    "revenue": 3,
+    "speed": "average",
+    "pinchHitter": true,
+    "abilityText": null,
+    "hits": [
+      "home_run"
+    ],
+    "sourceImage": "httpssteamusercontentaakamaihdnetugc7919882953161101764CDE9DCB2510284137C9A55E2433F076C5E8ADB9.jpg"
+  },
+  {
+    "id": "FA-108",
+    "set": "base",
+    "category": "free_agent",
+    "name": "Bat 100 R",
+    "team": "Cleveland",
+    "tier": null,
+    "type": "robot",
+    "cost": 6,
+    "revenue": 3,
+    "speed": "average",
+    "pinchHitter": true,
+    "abilityText": null,
+    "hits": [
+      "home_run"
+    ],
+    "sourceImage": "httpssteamusercontentaakamaihdnetugc79198829531608974984ACD9A72183475A9105DE1E7D4F3F14F2986638.jpg"
+  },
+  {
+    "id": "FA-109",
+    "set": "base",
+    "category": "free_agent",
+    "name": "5 Tool Model",
+    "team": "Cincinnati",
+    "tier": null,
+    "type": "robot",
+    "cost": 10,
+    "revenue": 1,
+    "speed": "fast",
+    "pinchHitter": false,
+    "abilityText": "Clutch: Single (if runner on 2nd or 3rd)",
+    "hits": [
+      "single",
+      "single",
+      "single"
+    ],
+    "sourceImage": "httpssteamusercontentaakamaihdnetugc79198829531608974984ACD9A72183475A9105DE1E7D4F3F14F2986638.jpg"
+  },
+  {
+    "id": "FA-110",
+    "set": "base",
+    "category": "free_agent",
+    "name": "See Ya",
+    "team": "Detroit",
+    "tier": null,
+    "type": "robot",
+    "cost": 7,
+    "revenue": 0,
+    "speed": "slow",
+    "pinchHitter": false,
+    "abilityText": null,
+    "hits": [
+      "home_run",
+      "home_run"
+    ],
+    "sourceImage": "httpssteamusercontentaakamaihdnetugc79198829531608974984ACD9A72183475A9105DE1E7D4F3F14F2986638.jpg"
+  },
+  {
+    "id": "FA-111",
+    "set": "base",
+    "category": "free_agent",
+    "name": "Turtlebot TR",
+    "team": "Texas",
+    "tier": null,
+    "type": "robot",
+    "cost": 4,
+    "revenue": 2,
+    "speed": "average",
+    "pinchHitter": false,
+    "abilityText": null,
+    "hits": [
+      "single",
+      "single"
+    ],
+    "sourceImage": "httpssteamusercontentaakamaihdnetugc79198829531608974984ACD9A72183475A9105DE1E7D4F3F14F2986638.jpg"
+  },
+  {
+    "id": "FA-112",
+    "set": "base",
+    "category": "free_agent",
+    "name": "Turtlebot LG",
+    "team": "Atlanta",
+    "tier": null,
+    "type": "robot",
+    "cost": 4,
+    "revenue": 2,
+    "speed": "average",
+    "pinchHitter": false,
+    "abilityText": null,
+    "hits": [
+      "single",
+      "single"
+    ],
+    "sourceImage": "httpssteamusercontentaakamaihdnetugc79198829531608974984ACD9A72183475A9105DE1E7D4F3F14F2986638.jpg"
+  },
+  {
+    "id": "FA-113",
+    "set": "base",
+    "category": "free_agent",
+    "name": "Boomer 3",
+    "team": "Baltimore",
+    "tier": null,
+    "type": "robot",
+    "cost": 7,
+    "revenue": 0,
+    "speed": "fast",
+    "pinchHitter": false,
+    "abilityText": "Leadoff: If this is your first card played, Single",
+    "hits": [
+      "single",
+      "single"
+    ],
+    "sourceImage": "httpssteamusercontentaakamaihdnetugc791988295316122721DAA188250E9A90014FBBBB4FE1878CEA496C3DF1.jpg"
+  },
+  {
+    "id": "FA-114",
+    "set": "base",
+    "category": "free_agent",
+    "name": "Mini Motor CX",
+    "team": "San Francisco",
+    "tier": null,
+    "type": "robot",
+    "cost": 4,
+    "revenue": 0,
+    "speed": "fast",
+    "pinchHitter": false,
+    "abilityText": "Stolen Base: Advance all Average and Fast base runners 1 base",
+    "hits": [
+      "single",
+      "single"
+    ],
+    "sourceImage": "httpssteamusercontentaakamaihdnetugc791988295316122721DAA188250E9A90014FBBBB4FE1878CEA496C3DF1.jpg"
+  },
+  {
+    "id": "FA-115",
+    "set": "base",
+    "category": "free_agent",
+    "name": "Mini Motor FX",
+    "team": "Detroit",
+    "tier": null,
+    "type": "robot",
+    "cost": 4,
+    "revenue": 0,
+    "speed": "fast",
+    "pinchHitter": false,
+    "abilityText": "Stolen Base: Advance all Average and Fast base runners 1 base",
+    "hits": [
+      "single",
+      "single"
+    ],
+    "sourceImage": "httpssteamusercontentaakamaihdnetugc791988295316122721DAA188250E9A90014FBBBB4FE1878CEA496C3DF1.jpg"
+  },
+  {
+    "id": "FA-116",
+    "set": "base",
+    "category": "free_agent",
+    "name": "Cy Pie",
+    "team": "St. Louis",
+    "tier": null,
+    "type": "natural",
+    "cost": 8,
+    "revenue": 2,
+    "speed": "fast",
+    "pinchHitter": true,
+    "abilityText": "Leadoff: If this is your first card played, Double",
+    "hits": [
+      "single"
+    ],
+    "sourceImage": "httpssteamusercontentaakamaihdnetugc791988295316122721DAA188250E9A90014FBBBB4FE1878CEA496C3DF1.jpg"
+  },
+  {
+    "id": "FA-117",
+    "set": "base",
+    "category": "free_agent",
+    "name": "Max Verlander",
+    "team": "Philadelphia",
+    "tier": null,
+    "type": "cyborg",
+    "cost": 11,
+    "revenue": 2,
+    "speed": "fast",
+    "pinchHitter": false,
+    "abilityText": "Curve: Cancel all Hits vs. a Robot",
+    "hits": [
+      "triple",
+      "double"
+    ],
+    "sourceImage": "httpssteamusercontentaakamaihdnetugc791988295316122721DAA188250E9A90014FBBBB4FE1878CEA496C3DF1.jpg"
+  },
+  {
+    "id": "FA-118",
+    "set": "base",
+    "category": "free_agent",
+    "name": "Catfish Carlton",
+    "team": "Cleveland",
+    "tier": null,
+    "type": "cyborg",
+    "cost": 9,
+    "revenue": 1,
+    "speed": "average",
+    "pinchHitter": false,
+    "abilityText": "Spit Ball: Cancel all Hits vs. a Cyborg",
+    "hits": [
+      "single",
+      "single",
+      "double"
+    ],
+    "sourceImage": "httpssteamusercontentaakamaihdnetugc791988295316122721DAA188250E9A90014FBBBB4FE1878CEA496C3DF1.jpg"
+  },
+  {
+    "id": "FA-119",
+    "set": "base",
+    "category": "free_agent",
+    "name": "Model SK",
+    "team": "Baltimore",
+    "tier": null,
+    "type": "robot",
+    "cost": 6,
+    "revenue": 2,
+    "speed": "average",
+    "pinchHitter": false,
+    "abilityText": "Quick Eye: Single (if vs. Cyborg)",
+    "hits": [
+      "double",
+      "single"
+    ],
+    "sourceImage": "httpssteamusercontentaakamaihdnetugc791988295316122721DAA188250E9A90014FBBBB4FE1878CEA496C3DF1.jpg"
+  },
+  {
+    "id": "FA-120",
+    "set": "base",
+    "category": "free_agent",
+    "name": "Model TT",
+    "team": "Detroit",
+    "tier": null,
+    "type": "robot",
+    "cost": 6,
+    "revenue": 2,
+    "speed": "average",
+    "pinchHitter": false,
+    "abilityText": "Quick Eye: Single (if vs. Cyborg)",
+    "hits": [
+      "double",
+      "single"
+    ],
+    "sourceImage": "httpssteamusercontentaakamaihdnetugc7919882953161101764CDE9DCB2510284137C9A55E2433F076C5E8ADB9.jpg"
+  }
+]
