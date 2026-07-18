@@ -20,6 +20,7 @@ type Card = {
   speed: Speed;
   pinchHitter: boolean;
   abilityText: string | null;
+  abilityTextKo: string | null;
   hits: Hit[];
 };
 
@@ -298,14 +299,14 @@ function PlayerCard({ card, selected, disabled, onClick }: { card: Card; selecte
         <strong>{card.id}</strong>
         <span className="revenue-badge">수익 {card.revenue}</span>
       </span>
-      <span className="card-role">{card.tier === "veteran" ? "VETERAN" : card.tier === "rookie" ? "ROOKIE" : card.name}</span>
+      <span className="card-role">{card.tier === "veteran" ? "베테랑" : card.tier === "rookie" ? "루키" : card.name}</span>
       <span className="card-figure" aria-hidden="true">
         <span className="figure-head" />
         <span className="figure-body" />
         <span className="figure-bat" />
       </span>
       <span className="type-ribbon">{typeLabel[card.type]}</span>
-      <span className="ability-box">{card.abilityText ?? "기본 능력 없음"}</span>
+      <span className="ability-box" title={card.abilityText ?? undefined}>{card.abilityTextKo ?? "기본 능력 없음"}</span>
       <span className="hit-row">
         {card.hits.length ? card.hits.map((hit, index) => <em key={`${hit}-${index}`}>{hitLabel[hit]}</em>) : <em className="no-hit">—</em>}
       </span>
@@ -424,6 +425,7 @@ export function GamePrototype() {
           <span>② 먼저 상대 위협 안타에 내 카드의 수비 능력 적용</span>
           <span>③ 남은 안타 확정 후 내 안타를 위협 칸에 등록</span>
           <span>④ 글러브·견제·병살·구종 상성·볼넷·퀵 아이·클러치 처리</span>
+          <span>※ 위협 안타: 아직 득점 처리되지 않아 다음 카드로 막을 수 있는 안타</span>
         </aside>
       )}
 

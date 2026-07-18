@@ -12,6 +12,7 @@
     "speed": "average",
     "pinchHitter": false,
     "abilityText": "Glove: Cancel 1 Hit",
+    "abilityTextKo": "글러브: 위협 안타 1개 취소",
     "hits": [
       "single"
     ],
@@ -30,6 +31,7 @@
     "speed": "average",
     "pinchHitter": true,
     "abilityText": "Pick Off: Remove 1 base runner",
+    "abilityTextKo": "견제: 주자 1명 제거",
     "hits": [],
     "sourceImage": "httpssteamusercontentaakamaihdnetugc7919882953082131974A3EA2E997E0EB287BF0CBA605F32A628F492790.jpg"
   },
@@ -46,6 +48,7 @@
     "speed": "average",
     "pinchHitter": false,
     "abilityText": null,
+    "abilityTextKo": null,
     "hits": [
       "single"
     ],
@@ -64,6 +67,7 @@
     "speed": "average",
     "pinchHitter": false,
     "abilityText": null,
+    "abilityTextKo": null,
     "hits": [
       "single"
     ],
@@ -82,6 +86,7 @@
     "speed": "average",
     "pinchHitter": true,
     "abilityText": "Glove: Cancel 1 Hit",
+    "abilityTextKo": "글러브: 위협 안타 1개 취소",
     "hits": [],
     "sourceImage": "httpssteamusercontentaakamaihdnetugc7919882953082131974A3EA2E997E0EB287BF0CBA605F32A628F492790.jpg"
   },
@@ -98,6 +103,7 @@
     "speed": "average",
     "pinchHitter": true,
     "abilityText": "Walk: Change all Hits to Walks",
+    "abilityTextKo": "볼넷: 모든 위협 안타를 볼넷으로 변경",
     "hits": [],
     "sourceImage": "httpssteamusercontentaakamaihdnetugc7919882953082131974A3EA2E997E0EB287BF0CBA605F32A628F492790.jpg"
   },
@@ -114,6 +120,7 @@
     "speed": "slow",
     "pinchHitter": false,
     "abilityText": null,
+    "abilityTextKo": null,
     "hits": [
       "double"
     ],
@@ -132,6 +139,7 @@
     "speed": "average",
     "pinchHitter": false,
     "abilityText": null,
+    "abilityTextKo": null,
     "hits": [
       "double"
     ],
@@ -150,6 +158,7 @@
     "speed": "slow",
     "pinchHitter": false,
     "abilityText": null,
+    "abilityTextKo": null,
     "hits": [
       "single",
       "single"
@@ -169,6 +178,7 @@
     "speed": "slow",
     "pinchHitter": false,
     "abilityText": null,
+    "abilityTextKo": null,
     "hits": [
       "single",
       "single"
@@ -188,6 +198,7 @@
     "speed": "average",
     "pinchHitter": false,
     "abilityText": "Clutch: Double (if runner on 2nd or 3rd)",
+    "abilityTextKo": "클러치: 2루 또는 3루에 주자가 있으면 2루타",
     "hits": [
       "single"
     ],
@@ -206,6 +217,7 @@
     "speed": "average",
     "pinchHitter": true,
     "abilityText": "Fastball: Cancel all Hits vs. a Natural",
+    "abilityTextKo": "패스트볼: 내추럴 상대의 모든 위협 안타 취소",
     "hits": [],
     "sourceImage": "httpssteamusercontentaakamaihdnetugc7919882953082131974A3EA2E997E0EB287BF0CBA605F32A628F492790.jpg"
   },
@@ -222,6 +234,7 @@
     "speed": "average",
     "pinchHitter": false,
     "abilityText": "Glove: Cancel 1 Hit",
+    "abilityTextKo": "글러브: 위협 안타 1개 취소",
     "hits": [
       "single"
     ],
@@ -240,6 +253,7 @@
     "speed": "average",
     "pinchHitter": true,
     "abilityText": null,
+    "abilityTextKo": null,
     "hits": [
       "home_run"
     ],
@@ -258,6 +272,7 @@
     "speed": "average",
     "pinchHitter": false,
     "abilityText": null,
+    "abilityTextKo": null,
     "hits": [
       "single",
       "single"
@@ -277,6 +292,7 @@
     "speed": "average",
     "pinchHitter": false,
     "abilityText": "Glove: Cancel 1 Hit",
+    "abilityTextKo": "글러브: 위협 안타 1개 취소",
     "hits": [
       "single"
     ],
@@ -295,6 +311,7 @@
     "speed": "average",
     "pinchHitter": true,
     "abilityText": "Pick Off: Remove 1 base runner",
+    "abilityTextKo": "견제: 주자 1명 제거",
     "hits": [],
     "sourceImage": "httpssteamusercontentaakamaihdnetugc79198829531608574574DCC3D337E61D4184FD361A369E225D333F0A01.jpg"
   },
@@ -311,6 +328,7 @@
     "speed": "average",
     "pinchHitter": false,
     "abilityText": null,
+    "abilityTextKo": null,
     "hits": [
       "single"
     ],
@@ -329,6 +347,7 @@
     "speed": "average",
     "pinchHitter": false,
     "abilityText": null,
+    "abilityTextKo": null,
     "hits": [
       "single"
     ],
@@ -347,6 +366,7 @@
     "speed": "average",
     "pinchHitter": true,
     "abilityText": "Glove: Cancel 1 Hit",
+    "abilityTextKo": "글러브: 위협 안타 1개 취소",
     "hits": [],
     "sourceImage": "httpssteamusercontentaakamaihdnetugc79198829531608574574DCC3D337E61D4184FD361A369E225D333F0A01.jpg"
   },
@@ -363,6 +383,7 @@
     "speed": "average",
     "pinchHitter": true,
     "abilityText": "Walk: Change all Hits to Walks",
+    "abilityTextKo": "볼넷: 모든 위협 안타를 볼넷으로 변경",
     "hits": [],
     "sourceImage": "httpssteamusercontentaakamaihdnetugc79198829531608574574DCC3D337E61D4184FD361A369E225D333F0A01.jpg"
   },
@@ -379,6 +400,7 @@
     "speed": "slow",
     "pinchHitter": false,
     "abilityText": null,
+    "abilityTextKo": null,
     "hits": [
       "double"
     ],
@@ -397,6 +419,7 @@
     "speed": "average",
     "pinchHitter": false,
     "abilityText": null,
+    "abilityTextKo": null,
     "hits": [
       "double"
     ],
@@ -415,6 +438,7 @@
     "speed": "slow",
     "pinchHitter": false,
     "abilityText": null,
+    "abilityTextKo": null,
     "hits": [
       "single",
       "single"
@@ -434,6 +458,7 @@
     "speed": "slow",
     "pinchHitter": false,
     "abilityText": null,
+    "abilityTextKo": null,
     "hits": [
       "single",
       "single"
@@ -453,6 +478,7 @@
     "speed": "average",
     "pinchHitter": true,
     "abilityText": "Leadoff: If this is your first card played, Single",
+    "abilityTextKo": "리드오프: 이 카드가 첫 카드라면 1루타",
     "hits": [],
     "sourceImage": "httpssteamusercontentaakamaihdnetugc79198829531608574574DCC3D337E61D4184FD361A369E225D333F0A01.jpg"
   },
@@ -469,6 +495,7 @@
     "speed": "average",
     "pinchHitter": true,
     "abilityText": "Curve: Cancel all Hits vs. a Robot",
+    "abilityTextKo": "커브: 로봇 상대의 모든 위협 안타 취소",
     "hits": [],
     "sourceImage": "httpssteamusercontentaakamaihdnetugc79198829531608574574DCC3D337E61D4184FD361A369E225D333F0A01.jpg"
   },
@@ -485,6 +512,7 @@
     "speed": "average",
     "pinchHitter": false,
     "abilityText": null,
+    "abilityTextKo": null,
     "hits": [
       "single",
       "double"
@@ -504,6 +532,7 @@
     "speed": "average",
     "pinchHitter": false,
     "abilityText": null,
+    "abilityTextKo": null,
     "hits": [
       "home_run"
     ],
@@ -522,6 +551,7 @@
     "speed": "average",
     "pinchHitter": false,
     "abilityText": "Stolen Base: Advance all Average and Fast base runners 1 base",
+    "abilityTextKo": "도루: 보통·빠른 주자 모두 1베이스 진루",
     "hits": [
       "single",
       "single"
@@ -541,6 +571,7 @@
     "speed": "average",
     "pinchHitter": false,
     "abilityText": "Glove: Cancel 1 Hit",
+    "abilityTextKo": "글러브: 위협 안타 1개 취소",
     "hits": [
       "single"
     ],
@@ -559,6 +590,7 @@
     "speed": "average",
     "pinchHitter": true,
     "abilityText": "Pick Off: Remove 1 base runner",
+    "abilityTextKo": "견제: 주자 1명 제거",
     "hits": [],
     "sourceImage": "httpssteamusercontentaakamaihdnetugc7919882953082131974A3EA2E997E0EB287BF0CBA605F32A628F492790.jpg"
   },
@@ -575,6 +607,7 @@
     "speed": "average",
     "pinchHitter": false,
     "abilityText": null,
+    "abilityTextKo": null,
     "hits": [
       "single"
     ],
@@ -593,6 +626,7 @@
     "speed": "average",
     "pinchHitter": false,
     "abilityText": null,
+    "abilityTextKo": null,
     "hits": [
       "single"
     ],
@@ -611,6 +645,7 @@
     "speed": "average",
     "pinchHitter": true,
     "abilityText": "Glove: Cancel 1 Hit",
+    "abilityTextKo": "글러브: 위협 안타 1개 취소",
     "hits": [],
     "sourceImage": "httpssteamusercontentaakamaihdnetugc7919882953082131974A3EA2E997E0EB287BF0CBA605F32A628F492790.jpg"
   },
@@ -627,6 +662,7 @@
     "speed": "average",
     "pinchHitter": true,
     "abilityText": "Walk: Change all Hits to Walks",
+    "abilityTextKo": "볼넷: 모든 위협 안타를 볼넷으로 변경",
     "hits": [],
     "sourceImage": "httpssteamusercontentaakamaihdnetugc7919882953082131974A3EA2E997E0EB287BF0CBA605F32A628F492790.jpg"
   },
@@ -643,6 +679,7 @@
     "speed": "slow",
     "pinchHitter": false,
     "abilityText": null,
+    "abilityTextKo": null,
     "hits": [
       "double"
     ],
@@ -661,6 +698,7 @@
     "speed": "average",
     "pinchHitter": false,
     "abilityText": null,
+    "abilityTextKo": null,
     "hits": [
       "double"
     ],
@@ -679,6 +717,7 @@
     "speed": "slow",
     "pinchHitter": false,
     "abilityText": null,
+    "abilityTextKo": null,
     "hits": [
       "single",
       "single"
@@ -698,6 +737,7 @@
     "speed": "slow",
     "pinchHitter": false,
     "abilityText": null,
+    "abilityTextKo": null,
     "hits": [
       "single",
       "single"
@@ -717,6 +757,7 @@
     "speed": "average",
     "pinchHitter": true,
     "abilityText": "Clutch: Single (if runner on 2nd or 3rd)",
+    "abilityTextKo": "클러치: 2루 또는 3루에 주자가 있으면 1루타",
     "hits": [
       "single"
     ],
@@ -735,6 +776,7 @@
     "speed": "average",
     "pinchHitter": true,
     "abilityText": "Knuckle Ball: Reduce all Hits by 1 base",
+    "abilityTextKo": "너클볼: 모든 위협 안타의 진루 수 1 감소",
     "hits": [],
     "sourceImage": "httpssteamusercontentaakamaihdnetugc7919882953082131974A3EA2E997E0EB287BF0CBA605F32A628F492790.jpg"
   },
@@ -751,6 +793,7 @@
     "speed": "slow",
     "pinchHitter": false,
     "abilityText": "Glove: Cancel 1 Hit",
+    "abilityTextKo": "글러브: 위협 안타 1개 취소",
     "hits": [
       "triple"
     ],
@@ -769,6 +812,7 @@
     "speed": "average",
     "pinchHitter": false,
     "abilityText": null,
+    "abilityTextKo": null,
     "hits": [
       "home_run"
     ],
@@ -787,6 +831,7 @@
     "speed": "fast",
     "pinchHitter": false,
     "abilityText": null,
+    "abilityTextKo": null,
     "hits": [
       "double"
     ],
@@ -805,6 +850,7 @@
     "speed": "average",
     "pinchHitter": false,
     "abilityText": "Glove: Cancel 1 Hit",
+    "abilityTextKo": "글러브: 위협 안타 1개 취소",
     "hits": [
       "single"
     ],
@@ -823,6 +869,7 @@
     "speed": "average",
     "pinchHitter": true,
     "abilityText": "Pick Off: Remove 1 base runner",
+    "abilityTextKo": "견제: 주자 1명 제거",
     "hits": [],
     "sourceImage": "httpssteamusercontentaakamaihdnetugc791988035055676465886CFD6F4A460F4C361D89102F3B89B7946EFA59.jpg"
   },
@@ -839,6 +886,7 @@
     "speed": "average",
     "pinchHitter": false,
     "abilityText": null,
+    "abilityTextKo": null,
     "hits": [
       "single"
     ],
@@ -857,6 +905,7 @@
     "speed": "average",
     "pinchHitter": false,
     "abilityText": null,
+    "abilityTextKo": null,
     "hits": [
       "single"
     ],
@@ -875,6 +924,7 @@
     "speed": "average",
     "pinchHitter": true,
     "abilityText": "Glove: Cancel 1 Hit",
+    "abilityTextKo": "글러브: 위협 안타 1개 취소",
     "hits": [],
     "sourceImage": "httpssteamusercontentaakamaihdnetugc791988035055676465886CFD6F4A460F4C361D89102F3B89B7946EFA59.jpg"
   },
@@ -891,6 +941,7 @@
     "speed": "average",
     "pinchHitter": true,
     "abilityText": "Walk: Change all Hits to Walks",
+    "abilityTextKo": "볼넷: 모든 위협 안타를 볼넷으로 변경",
     "hits": [],
     "sourceImage": "httpssteamusercontentaakamaihdnetugc791988035055676465886CFD6F4A460F4C361D89102F3B89B7946EFA59.jpg"
   },
@@ -907,6 +958,7 @@
     "speed": "slow",
     "pinchHitter": false,
     "abilityText": null,
+    "abilityTextKo": null,
     "hits": [
       "double"
     ],
@@ -925,6 +977,7 @@
     "speed": "average",
     "pinchHitter": false,
     "abilityText": null,
+    "abilityTextKo": null,
     "hits": [
       "double"
     ],
@@ -943,6 +996,7 @@
     "speed": "slow",
     "pinchHitter": false,
     "abilityText": null,
+    "abilityTextKo": null,
     "hits": [
       "single",
       "single"
@@ -962,6 +1016,7 @@
     "speed": "slow",
     "pinchHitter": false,
     "abilityText": null,
+    "abilityTextKo": null,
     "hits": [
       "single",
       "single"
@@ -981,6 +1036,7 @@
     "speed": "average",
     "pinchHitter": false,
     "abilityText": "Double Play: Remove up to 2 base runners (no Fast)",
+    "abilityTextKo": "병살: 빠른 주자를 제외하고 최대 2명 제거",
     "hits": [
       "single"
     ],
@@ -999,6 +1055,7 @@
     "speed": "average",
     "pinchHitter": false,
     "abilityText": "Fastball: Cancel all Hits vs. a Natural",
+    "abilityTextKo": "패스트볼: 내추럴 상대의 모든 위협 안타 취소",
     "hits": [
       "single"
     ],
@@ -1017,6 +1074,7 @@
     "speed": "slow",
     "pinchHitter": true,
     "abilityText": "Quick Eye: Single (if vs. Cyborg)",
+    "abilityTextKo": "퀵 아이: 상대가 사이보그라면 1루타",
     "hits": [
       "double"
     ],
@@ -1035,6 +1093,7 @@
     "speed": "average",
     "pinchHitter": true,
     "abilityText": null,
+    "abilityTextKo": null,
     "hits": [
       "home_run"
     ],
@@ -1053,6 +1112,7 @@
     "speed": "average",
     "pinchHitter": false,
     "abilityText": null,
+    "abilityTextKo": null,
     "hits": [
       "triple"
     ],
@@ -1071,6 +1131,7 @@
     "speed": "average",
     "pinchHitter": false,
     "abilityText": "Double Play: Remove up to 2 base runners (no Fast)",
+    "abilityTextKo": "병살: 빠른 주자를 제외하고 최대 2명 제거",
     "hits": [
       "single",
       "single"
@@ -1090,6 +1151,7 @@
     "speed": "fast",
     "pinchHitter": true,
     "abilityText": "Glove: Cancel 1 Hit",
+    "abilityTextKo": "글러브: 위협 안타 1개 취소",
     "hits": [
       "single"
     ],
@@ -1108,6 +1170,7 @@
     "speed": "fast",
     "pinchHitter": true,
     "abilityText": "Glove: Cancel 1 Hit",
+    "abilityTextKo": "글러브: 위협 안타 1개 취소",
     "hits": [
       "single",
       "single"
@@ -1127,6 +1190,7 @@
     "speed": "average",
     "pinchHitter": false,
     "abilityText": "Clutch: Single (if runner on 2nd or 3rd)",
+    "abilityTextKo": "클러치: 2루 또는 3루에 주자가 있으면 1루타",
     "hits": [
       "single",
       "single"
@@ -1146,6 +1210,7 @@
     "speed": "slow",
     "pinchHitter": true,
     "abilityText": "Glove: Cancel 1 Hit",
+    "abilityTextKo": "글러브: 위협 안타 1개 취소",
     "hits": [
       "double"
     ],
@@ -1164,6 +1229,7 @@
     "speed": "fast",
     "pinchHitter": true,
     "abilityText": "Double Play: Remove up to 2 base runners (no Fast)",
+    "abilityTextKo": "병살: 빠른 주자를 제외하고 최대 2명 제거",
     "hits": [
       "single"
     ],
@@ -1182,6 +1248,7 @@
     "speed": "average",
     "pinchHitter": false,
     "abilityText": "Glove: Cancel 1 Hit",
+    "abilityTextKo": "글러브: 위협 안타 1개 취소",
     "hits": [
       "single",
       "home_run"
@@ -1201,6 +1268,7 @@
     "speed": "slow",
     "pinchHitter": false,
     "abilityText": "Glove: Cancel 1 Hit",
+    "abilityTextKo": "글러브: 위협 안타 1개 취소",
     "hits": [
       "single",
       "double"
@@ -1220,6 +1288,7 @@
     "speed": "average",
     "pinchHitter": false,
     "abilityText": null,
+    "abilityTextKo": null,
     "hits": [
       "single",
       "single"
@@ -1239,6 +1308,7 @@
     "speed": "average",
     "pinchHitter": true,
     "abilityText": "Double Play: Remove up to 2 base runners (no Fast)",
+    "abilityTextKo": "병살: 빠른 주자를 제외하고 최대 2명 제거",
     "hits": [],
     "sourceImage": "httpssteamusercontentaakamaihdnetugc7919882953161101764CDE9DCB2510284137C9A55E2433F076C5E8ADB9.jpg"
   },
@@ -1255,6 +1325,7 @@
     "speed": "average",
     "pinchHitter": true,
     "abilityText": "Clutch: Single (if runner on 2nd or 3rd)",
+    "abilityTextKo": "클러치: 2루 또는 3루에 주자가 있으면 1루타",
     "hits": [
       "double"
     ],
@@ -1273,6 +1344,7 @@
     "speed": "average",
     "pinchHitter": true,
     "abilityText": "Glove: Cancel 1 Hit",
+    "abilityTextKo": "글러브: 위협 안타 1개 취소",
     "hits": [
       "double"
     ],
@@ -1291,6 +1363,7 @@
     "speed": "average",
     "pinchHitter": true,
     "abilityText": null,
+    "abilityTextKo": null,
     "hits": [
       "triple"
     ],
@@ -1309,6 +1382,7 @@
     "speed": "fast",
     "pinchHitter": true,
     "abilityText": "Leadoff: If this is your first card played, Single",
+    "abilityTextKo": "리드오프: 이 카드가 첫 카드라면 1루타",
     "hits": [],
     "sourceImage": "httpssteamusercontentaakamaihdnetugc79198829531608974984ACD9A72183475A9105DE1E7D4F3F14F2986638.jpg"
   },
@@ -1325,6 +1399,7 @@
     "speed": "average",
     "pinchHitter": true,
     "abilityText": "Double Play: Remove up to 2 base runners (no Fast)",
+    "abilityTextKo": "병살: 빠른 주자를 제외하고 최대 2명 제거",
     "hits": [
       "single"
     ],
@@ -1343,6 +1418,7 @@
     "speed": "fast",
     "pinchHitter": true,
     "abilityText": "Glove: Cancel 1 Hit",
+    "abilityTextKo": "글러브: 위협 안타 1개 취소",
     "hits": [
       "single"
     ],
@@ -1361,6 +1437,7 @@
     "speed": "fast",
     "pinchHitter": true,
     "abilityText": "Glove: Cancel 1 Hit",
+    "abilityTextKo": "글러브: 위협 안타 1개 취소",
     "hits": [
       "triple"
     ],
@@ -1379,6 +1456,7 @@
     "speed": "average",
     "pinchHitter": true,
     "abilityText": "Glove: Cancel 1 Hit",
+    "abilityTextKo": "글러브: 위협 안타 1개 취소",
     "hits": [
       "home_run"
     ],
@@ -1397,6 +1475,7 @@
     "speed": "fast",
     "pinchHitter": true,
     "abilityText": "Leadoff: If this is your first card played, Single",
+    "abilityTextKo": "리드오프: 이 카드가 첫 카드라면 1루타",
     "hits": [
       "single"
     ],
@@ -1415,6 +1494,7 @@
     "speed": "average",
     "pinchHitter": true,
     "abilityText": "Clutch: Single (if runner on 2nd or 3rd)",
+    "abilityTextKo": "클러치: 2루 또는 3루에 주자가 있으면 1루타",
     "hits": [
       "home_run"
     ],
@@ -1433,6 +1513,7 @@
     "speed": "average",
     "pinchHitter": false,
     "abilityText": "Glove: Cancel 1 Hit",
+    "abilityTextKo": "글러브: 위협 안타 1개 취소",
     "hits": [
       "single",
       "single"
@@ -1452,6 +1533,7 @@
     "speed": "fast",
     "pinchHitter": false,
     "abilityText": "Glove: Cancel 1 Hit",
+    "abilityTextKo": "글러브: 위협 안타 1개 취소",
     "hits": [
       "single",
       "double"
@@ -1471,6 +1553,7 @@
     "speed": "average",
     "pinchHitter": false,
     "abilityText": null,
+    "abilityTextKo": null,
     "hits": [
       "home_run",
       "home_run"
@@ -1490,6 +1573,7 @@
     "speed": "average",
     "pinchHitter": true,
     "abilityText": "Spit Ball: Cancel all Hits vs. a Cyborg",
+    "abilityTextKo": "스핏볼: 사이보그 상대의 모든 위협 안타 취소",
     "hits": [
       "double"
     ],
@@ -1508,6 +1592,7 @@
     "speed": "average",
     "pinchHitter": true,
     "abilityText": "Knuckle Ball: Reduce all Hits by 1 base",
+    "abilityTextKo": "너클볼: 모든 위협 안타의 진루 수 1 감소",
     "hits": [
       "single"
     ],
@@ -1526,6 +1611,7 @@
     "speed": "average",
     "pinchHitter": true,
     "abilityText": "Fastball: Cancel all Hits vs. a Natural",
+    "abilityTextKo": "패스트볼: 내추럴 상대의 모든 위협 안타 취소",
     "hits": [
       "single"
     ],
@@ -1544,6 +1630,7 @@
     "speed": "average",
     "pinchHitter": true,
     "abilityText": "Fastball: Cancel all Hits vs. a Natural",
+    "abilityTextKo": "패스트볼: 내추럴 상대의 모든 위협 안타 취소",
     "hits": [
       "single"
     ],
@@ -1562,6 +1649,7 @@
     "speed": "average",
     "pinchHitter": false,
     "abilityText": "Curve: Cancel all Hits vs. a Robot",
+    "abilityTextKo": "커브: 로봇 상대의 모든 위협 안타 취소",
     "hits": [
       "double",
       "single"
@@ -1581,6 +1669,7 @@
     "speed": "average",
     "pinchHitter": true,
     "abilityText": "Fastball: Cancel all Hits vs. a Natural",
+    "abilityTextKo": "패스트볼: 내추럴 상대의 모든 위협 안타 취소",
     "hits": [
       "triple"
     ],
@@ -1599,6 +1688,7 @@
     "speed": "average",
     "pinchHitter": false,
     "abilityText": "Curve: Cancel all Hits vs. a Robot",
+    "abilityTextKo": "커브: 로봇 상대의 모든 위협 안타 취소",
     "hits": [
       "single",
       "single",
@@ -1619,6 +1709,7 @@
     "speed": "average",
     "pinchHitter": true,
     "abilityText": "Walk: Change all Hits to Walks",
+    "abilityTextKo": "볼넷: 모든 위협 안타를 볼넷으로 변경",
     "hits": [
       "double"
     ],
@@ -1637,6 +1728,7 @@
     "speed": "average",
     "pinchHitter": false,
     "abilityText": "Curve: Cancel all Hits vs. a Robot",
+    "abilityTextKo": "커브: 로봇 상대의 모든 위협 안타 취소",
     "hits": [
       "single",
       "double"
@@ -1656,6 +1748,7 @@
     "speed": "average",
     "pinchHitter": true,
     "abilityText": "Fastball: Cancel all Hits vs. a Natural",
+    "abilityTextKo": "패스트볼: 내추럴 상대의 모든 위협 안타 취소",
     "hits": [
       "home_run"
     ],
@@ -1674,6 +1767,7 @@
     "speed": "average",
     "pinchHitter": true,
     "abilityText": "Knuckle Ball: Reduce all Hits by 1 base",
+    "abilityTextKo": "너클볼: 모든 위협 안타의 진루 수 1 감소",
     "hits": [
       "triple"
     ],
@@ -1692,6 +1786,7 @@
     "speed": "slow",
     "pinchHitter": false,
     "abilityText": null,
+    "abilityTextKo": null,
     "hits": [
       "double",
       "home_run"
@@ -1711,6 +1806,7 @@
     "speed": "slow",
     "pinchHitter": false,
     "abilityText": null,
+    "abilityTextKo": null,
     "hits": [
       "single",
       "single",
@@ -1731,6 +1827,7 @@
     "speed": "slow",
     "pinchHitter": false,
     "abilityText": null,
+    "abilityTextKo": null,
     "hits": [
       "single",
       "double",
@@ -1751,6 +1848,7 @@
     "speed": "slow",
     "pinchHitter": true,
     "abilityText": "Quick Eye: Single (if vs. Cyborg)",
+    "abilityTextKo": "퀵 아이: 상대가 사이보그라면 1루타",
     "hits": [
       "home_run"
     ],
@@ -1769,6 +1867,7 @@
     "speed": "average",
     "pinchHitter": true,
     "abilityText": "Quick Eye: Triple (if vs. Cyborg)",
+    "abilityTextKo": "퀵 아이: 상대가 사이보그라면 3루타",
     "hits": [
       "single"
     ],
@@ -1787,6 +1886,7 @@
     "speed": "slow",
     "pinchHitter": false,
     "abilityText": "Quick Eye: Homerun (if vs. Cyborg)",
+    "abilityTextKo": "퀵 아이: 상대가 사이보그라면 홈런",
     "hits": [
       "single",
       "single"
@@ -1806,6 +1906,7 @@
     "speed": "slow",
     "pinchHitter": true,
     "abilityText": "Quick Eye: Single (if vs. Cyborg)",
+    "abilityTextKo": "퀵 아이: 상대가 사이보그라면 1루타",
     "hits": [
       "home_run"
     ],
@@ -1824,6 +1925,7 @@
     "speed": "slow",
     "pinchHitter": true,
     "abilityText": "Clutch: Single (if runner on 2nd or 3rd)",
+    "abilityTextKo": "클러치: 2루 또는 3루에 주자가 있으면 1루타",
     "hits": [
       "home_run"
     ],
@@ -1842,6 +1944,7 @@
     "speed": "fast",
     "pinchHitter": false,
     "abilityText": "Stolen Base: Advance all Average and Fast base runners 1 base",
+    "abilityTextKo": "도루: 보통·빠른 주자 모두 1베이스 진루",
     "hits": [
       "single",
       "double"
@@ -1861,6 +1964,7 @@
     "speed": "fast",
     "pinchHitter": false,
     "abilityText": "Stolen Base: Advance all Average and Fast base runners 1 base",
+    "abilityTextKo": "도루: 보통·빠른 주자 모두 1베이스 진루",
     "hits": [
       "single",
       "double"
@@ -1880,6 +1984,7 @@
     "speed": "fast",
     "pinchHitter": false,
     "abilityText": null,
+    "abilityTextKo": null,
     "hits": [
       "single",
       "triple"
@@ -1899,6 +2004,7 @@
     "speed": "slow",
     "pinchHitter": false,
     "abilityText": "Stolen Base: Advance all Average and Fast base runners 1 base",
+    "abilityTextKo": "도루: 보통·빠른 주자 모두 1베이스 진루",
     "hits": [
       "single",
       "double"
@@ -1918,6 +2024,7 @@
     "speed": "average",
     "pinchHitter": true,
     "abilityText": null,
+    "abilityTextKo": null,
     "hits": [
       "home_run"
     ],
@@ -1936,6 +2043,7 @@
     "speed": "average",
     "pinchHitter": true,
     "abilityText": null,
+    "abilityTextKo": null,
     "hits": [
       "home_run"
     ],
@@ -1954,6 +2062,7 @@
     "speed": "fast",
     "pinchHitter": false,
     "abilityText": "Clutch: Single (if runner on 2nd or 3rd)",
+    "abilityTextKo": "클러치: 2루 또는 3루에 주자가 있으면 1루타",
     "hits": [
       "single",
       "single",
@@ -1974,6 +2083,7 @@
     "speed": "slow",
     "pinchHitter": false,
     "abilityText": null,
+    "abilityTextKo": null,
     "hits": [
       "home_run",
       "home_run"
@@ -1993,6 +2103,7 @@
     "speed": "average",
     "pinchHitter": false,
     "abilityText": null,
+    "abilityTextKo": null,
     "hits": [
       "single",
       "single"
@@ -2012,6 +2123,7 @@
     "speed": "average",
     "pinchHitter": false,
     "abilityText": null,
+    "abilityTextKo": null,
     "hits": [
       "single",
       "single"
@@ -2031,6 +2143,7 @@
     "speed": "fast",
     "pinchHitter": false,
     "abilityText": "Leadoff: If this is your first card played, Single",
+    "abilityTextKo": "리드오프: 이 카드가 첫 카드라면 1루타",
     "hits": [
       "single",
       "single"
@@ -2050,6 +2163,7 @@
     "speed": "fast",
     "pinchHitter": false,
     "abilityText": "Stolen Base: Advance all Average and Fast base runners 1 base",
+    "abilityTextKo": "도루: 보통·빠른 주자 모두 1베이스 진루",
     "hits": [
       "single",
       "single"
@@ -2069,6 +2183,7 @@
     "speed": "fast",
     "pinchHitter": false,
     "abilityText": "Stolen Base: Advance all Average and Fast base runners 1 base",
+    "abilityTextKo": "도루: 보통·빠른 주자 모두 1베이스 진루",
     "hits": [
       "single",
       "single"
@@ -2088,6 +2203,7 @@
     "speed": "fast",
     "pinchHitter": true,
     "abilityText": "Leadoff: If this is your first card played, Double",
+    "abilityTextKo": "리드오프: 이 카드가 첫 카드라면 2루타",
     "hits": [
       "single"
     ],
@@ -2106,6 +2222,7 @@
     "speed": "fast",
     "pinchHitter": false,
     "abilityText": "Curve: Cancel all Hits vs. a Robot",
+    "abilityTextKo": "커브: 로봇 상대의 모든 위협 안타 취소",
     "hits": [
       "triple",
       "double"
@@ -2125,6 +2242,7 @@
     "speed": "average",
     "pinchHitter": false,
     "abilityText": "Spit Ball: Cancel all Hits vs. a Cyborg",
+    "abilityTextKo": "스핏볼: 사이보그 상대의 모든 위협 안타 취소",
     "hits": [
       "single",
       "single",
@@ -2145,6 +2263,7 @@
     "speed": "average",
     "pinchHitter": false,
     "abilityText": "Quick Eye: Single (if vs. Cyborg)",
+    "abilityTextKo": "퀵 아이: 상대가 사이보그라면 1루타",
     "hits": [
       "double",
       "single"
@@ -2164,6 +2283,7 @@
     "speed": "average",
     "pinchHitter": false,
     "abilityText": "Quick Eye: Single (if vs. Cyborg)",
+    "abilityTextKo": "퀵 아이: 상대가 사이보그라면 1루타",
     "hits": [
       "double",
       "single"

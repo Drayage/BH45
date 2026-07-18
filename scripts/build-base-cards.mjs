@@ -29,6 +29,32 @@ const ability = {
   quickHomerun: "Quick Eye: Homerun (if vs. Cyborg)",
 };
 
+const abilityKo = {
+  [ability.glove]: "글러브: 위협 안타 1개 취소",
+  [ability.pickOff]: "견제: 주자 1명 제거",
+  [ability.walk]: "볼넷: 모든 위협 안타를 볼넷으로 변경",
+  [ability.fastball]: "패스트볼: 내추럴 상대의 모든 위협 안타 취소",
+  [ability.curve]: "커브: 로봇 상대의 모든 위협 안타 취소",
+  [ability.spitBall]: "스핏볼: 사이보그 상대의 모든 위협 안타 취소",
+  [ability.knuckleBall]: "너클볼: 모든 위협 안타의 진루 수 1 감소",
+  [ability.doublePlay]: "병살: 빠른 주자를 제외하고 최대 2명 제거",
+  [ability.stolenBase]: "도루: 보통·빠른 주자 모두 1베이스 진루",
+  [ability.clutchSingle]: "클러치: 2루 또는 3루에 주자가 있으면 1루타",
+  [ability.clutchDouble]: "클러치: 2루 또는 3루에 주자가 있으면 2루타",
+  [ability.leadoffSingle]: "리드오프: 이 카드가 첫 카드라면 1루타",
+  [ability.leadoffDouble]: "리드오프: 이 카드가 첫 카드라면 2루타",
+  [ability.quickSingle]: "퀵 아이: 상대가 사이보그라면 1루타",
+  [ability.quickTriple]: "퀵 아이: 상대가 사이보그라면 3루타",
+  [ability.quickHomerun]: "퀵 아이: 상대가 사이보그라면 홈런",
+};
+
+function translateAbility(abilityText) {
+  if (!abilityText) return null;
+  const translated = abilityKo[abilityText];
+  if (!translated) throw new Error(`Missing Korean ability translation: ${abilityText}`);
+  return translated;
+}
+
 const A = "average";
 const F = "fast";
 const S = "slow";
@@ -55,6 +81,7 @@ function starterCard(number, team, tier, type, revenue, hits, speed, pinchHitter
     speed,
     pinchHitter,
     abilityText,
+    abilityTextKo: translateAbility(abilityText),
     hits,
     sourceImage,
   };
@@ -74,6 +101,7 @@ function freeAgentCard(number, name, team, type, cost, revenue, hits, speed, pin
     speed,
     pinchHitter,
     abilityText,
+    abilityTextKo: translateAbility(abilityText),
     hits,
     sourceImage,
   };
@@ -234,7 +262,7 @@ function csvEscape(value) {
 function toCsv(rows) {
   const columns = [
     "id", "set", "category", "name", "team", "tier", "type", "cost", "revenue",
-    "speed", "pinchHitter", "abilityText", "hits", "sourceImage",
+    "speed", "pinchHitter", "abilityText", "abilityTextKo", "hits", "sourceImage",
   ];
   return [
     columns.join(","),
