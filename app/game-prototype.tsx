@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
 import cardData from "@/data/base-cards.json";
 
 type PlayerType = "natural" | "cyborg" | "robot";
@@ -582,9 +582,9 @@ function BaseDiamond({ bases }: { bases: Array<Runner | null> }) {
   );
 }
 
-function SnapshotTeam({ label, side, actor }: { label: string; side: VisualSide; actor: "player" | "cpu" }) {
+function SnapshotTeam({ label, side, actor, focused }: { label: string; side: VisualSide; actor: "player" | "cpu"; focused?: boolean }) {
   return (
-    <div className={`snapshot-team snapshot-${actor}`}>
+    <div className={`snapshot-team snapshot-${actor} ${focused ? "is-focused" : ""}`}>
       <div className="snapshot-score"><span>{label}</span><strong>{side.score}</strong></div>
       <BaseDiamond bases={side.bases} />
       <div className="runner-readout">
@@ -616,6 +616,10 @@ function SpeedLegend() {
 function PlaybackStage({ event, index, total, running, onSkip }: { event: ResolutionEvent | undefined; index: number; total: number; running: boolean; onSkip: () => void }) {
   if (!event?.snapshot) return null;
   const actingLabel = event.actor === "player" ? "YOU" : event.actor === "cpu" ? "CPU" : "RULE";
+  const focusedTeam = event.kind === "settle"
+    ? event.actor === "player" ? "cpu" : "player"
+    : event.kind === "threat" ? event.actor : null;
+  const cardFocused = event.kind === "reveal" || event.kind === "ability" || event.kind === "save";
   return (
     <section className={`playback-stage actor-${event.actor} playback-${event.kind}`} key={`${index}-${event.title}`} aria-label="현재 카드 처리 연출">
       <div className="playback-call">
@@ -625,14 +629,13 @@ function PlaybackStage({ event, index, total, running, onSkip }: { event: Resolu
         <p>{event.detail}</p>
         {running && <button type="button" onClick={onSkip}>연출 건너뛰기</button>}
       </div>
-      <div className="playback-card-slot">
+      <div className={`playback-card-slot ${cardFocused ? "is-focused" : ""}`}>
         {event.card && <PlayerCard card={event.card} disabled />}
-        <span className="effect-burst" aria-hidden="true" />
       </div>
       <div className="snapshot-field">
-        <SnapshotTeam label="CPU · 홈" side={event.snapshot.cpu} actor="cpu" />
+        <SnapshotTeam label="CPU · 홈" side={event.snapshot.cpu} actor="cpu" focused={focusedTeam === "cpu"} />
         <div className="snapshot-divider"><span>처리</span><i>→</i></div>
-        <SnapshotTeam label="YOU · 원정" side={event.snapshot.player} actor="player" />
+        <SnapshotTeam label="YOU · 원정" side={event.snapshot.player} actor="player" focused={focusedTeam === "player"} />
       </div>
     </section>
   );
@@ -643,14 +646,14 @@ function ScorePanel({ game }: { game: GameState }) {
     <section className="score-panel" aria-label="점수판">
       <div className="score-team">
         <span>{teamCode[game.cpu.team]}</span>
-        <strong key={`cpu-score-${game.cpu.score}-${game.resolutionKey}`}>{game.cpu.score}</strong>
+        <strong key={`cpu-score-${game.cpu.score}`}>{game.cpu.score}</strong>
       </div>
       <div className="inning-cell">
         <small>{game.stage === "exhibition" ? `EXHIBITION ${game.gameNumber}/3` : `WORLD SERIES ${game.gameNumber}`}</small>
         <b>{game.phase === "playing" ? `${game.round} / 6` : "FINAL"}</b>
       </div>
       <div className="score-team home-score">
-        <strong key={`player-score-${game.player.score}-${game.resolutionKey}`}>{game.player.score}</strong>
+        <strong key={`player-score-${game.player.score}`}>{game.player.score}</strong>
         <span>{teamCode[game.player.team]}</span>
       </div>
     </section>
@@ -663,10 +666,20 @@ export function GamePrototype() {
   const [showRules, setShowRules] = useState(false);
   const [playbackIndex, setPlaybackIndex] = useState(0);
   const [playbackRunning, setPlaybackRunning] = useState(false);
+  const [turnTransition, setTurnTransition] = useState<"cpu" | "player" | null>(null);
   const playbackTimers = useRef<Array<ReturnType<typeof setTimeout>>>([]);
+  const turnTransitionTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const playbackAnchorRef = useRef<HTMLDivElement>(null);
   const handAnchorRef = useRef<HTMLElement>(null);
   const previousPlaybackRunning = useRef(false);
+  const turnWasRunning = useRef(false);
+  const previousPlaybackActor = useRef<"player" | "cpu" | null>(null);
+
+  const showTurnTransition = useCallback((turn: "cpu" | "player") => {
+    if (turnTransitionTimer.current) clearTimeout(turnTransitionTimer.current);
+    setTurnTransition(turn);
+    turnTransitionTimer.current = setTimeout(() => setTurnTransition(null), 820);
+  }, []);
 
   useEffect(() => {
     playbackTimers.current.forEach(clearTimeout);
@@ -694,6 +707,29 @@ export function GamePrototype() {
       playbackTimers.current = [];
     };
   }, [game.lastResolution, game.resolutionKey]);
+
+  useEffect(() => {
+    const wasRunning = turnWasRunning.current;
+    turnWasRunning.current = playbackRunning;
+    const actor = game.lastResolution[playbackIndex]?.actor;
+    let nextTurn: "cpu" | "player" | null = null;
+
+    if (playbackRunning && (actor === "player" || actor === "cpu")) {
+      if (previousPlaybackActor.current === "player" && actor === "cpu") nextTurn = "cpu";
+      if (previousPlaybackActor.current === "cpu" && actor === "player") nextTurn = "player";
+      previousPlaybackActor.current = actor;
+    } else if (!playbackRunning && wasRunning) {
+      if (game.phase === "playing") nextTurn = "player";
+      previousPlaybackActor.current = null;
+    }
+    if (!nextTurn) return;
+    const timer = setTimeout(() => showTurnTransition(nextTurn), 0);
+    return () => clearTimeout(timer);
+  }, [game.lastResolution, game.phase, playbackIndex, playbackRunning, showTurnTransition]);
+
+  useEffect(() => () => {
+    if (turnTransitionTimer.current) clearTimeout(turnTransitionTimer.current);
+  }, []);
 
   useEffect(() => {
     const wasRunning = previousPlaybackRunning.current;
@@ -979,6 +1015,13 @@ export function GamePrototype() {
 
   return (
     <main className="game-shell">
+      {turnTransition && (
+        <div className={`turn-transition turn-${turnTransition}`} role="status" aria-live="polite">
+          <small>TURN CHANGE</small>
+          <strong>{turnTransition === "cpu" ? "CPU 차례" : "내 차례"}</strong>
+          <span>{turnTransition === "cpu" ? "상대 카드 처리" : "다음 카드 선택"}</span>
+        </div>
+      )}
       <header className="topbar">
         <div className="brand-lockup">
           <span className="brand-mark">45</span>
