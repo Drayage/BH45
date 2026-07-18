@@ -34,6 +34,7 @@ type Side = {
   played: Card[];
   bases: Array<Runner | null>;
   pending: ThreatHit[];
+  pendingSpeed: Speed | null;
   score: number;
   revenue: number;
 };
@@ -49,6 +50,7 @@ type ResolutionEvent = {
 
 type VisualSide = {
   pending: ThreatHit[];
+  pendingSpeed: Speed | null;
   bases: Array<Runner | null>;
   score: number;
 };
@@ -136,6 +138,7 @@ function makeSide(team: string): Side {
     played: [],
     bases: [null, null, null],
     pending: [],
+    pendingSpeed: null,
     score: 0,
     revenue: 0,
   };
@@ -189,7 +192,12 @@ function cloneSide(side: Side): Side {
 }
 
 function visualSide(side: Side): VisualSide {
-  return { pending: [...side.pending], bases: [...side.bases], score: side.score };
+  return {
+    pending: [...side.pending],
+    pendingSpeed: side.pending.length ? side.pendingSpeed : null,
+    bases: [...side.bases],
+    score: side.score,
+  };
 }
 
 function orientFrame(actor: "player" | "cpu", frame: MoveFrame): ResolutionSnapshot {
@@ -353,6 +361,7 @@ function applyDefensiveAbility(card: Card, acting: Side, opposing: Side, opposin
 function commitPending(side: Side, source: Card | undefined) {
   const hits = [...side.pending];
   side.pending = [];
+  side.pendingSpeed = null;
   hits.forEach((hit) => advanceHit(side, hit, source));
   return hits;
 }
@@ -360,6 +369,7 @@ function commitPending(side: Side, source: Card | undefined) {
 function playOne(card: Card, acting: Side, opposing: Side) {
   const opposingLast = opposing.played.at(-1);
   const revealFrame: MoveFrame = { acting: visualSide(acting), opposing: visualSide(opposing) };
+  acting.pendingSpeed = card.speed;
   const events = applyAbility(card, acting, opposing, opposingLast, acting.played.length);
   const abilityFrame: MoveFrame = { acting: visualSide(acting), opposing: visualSide(opposing) };
   const settled = commitPending(opposing, opposingLast);
@@ -368,6 +378,7 @@ function playOne(card: Card, acting: Side, opposing: Side) {
   acting.played.push(card);
   acting.revenue += card.revenue;
   acting.pending.push(...card.hits);
+  if (acting.pending.length) acting.pendingSpeed = card.speed;
   const threatFrame: MoveFrame = { acting: visualSide(acting), opposing: visualSide(opposing) };
   return {
     events,
@@ -403,6 +414,7 @@ function drawNextLineup(side: Side) {
   }
   side.bases = [null, null, null];
   side.pending = [];
+  side.pendingSpeed = null;
   side.score = 0;
   side.revenue = 0;
 }
@@ -562,9 +574,9 @@ function PlayerCard({ card, selected, disabled, onClick }: { card: Card; selecte
 function BaseDiamond({ bases }: { bases: Array<Runner | null> }) {
   return (
     <div className="diamond" aria-label={`1루 ${bases[0] ? "주자 있음" : "비어 있음"}, 2루 ${bases[1] ? "주자 있음" : "비어 있음"}, 3루 ${bases[2] ? "주자 있음" : "비어 있음"}`}>
-      <span className={`base base-second ${bases[1] ? "occupied" : ""}`}>2</span>
-      <span className={`base base-third ${bases[2] ? "occupied" : ""}`}>3</span>
-      <span className={`base base-first ${bases[0] ? "occupied" : ""}`}>1</span>
+      <span className={`base base-second ${bases[1] ? `occupied speed-${bases[1].speed}` : ""}`}>2</span>
+      <span className={`base base-third ${bases[2] ? `occupied speed-${bases[2].speed}` : ""}`}>3</span>
+      <span className={`base base-first ${bases[0] ? `occupied speed-${bases[0].speed}` : ""}`}>1</span>
       <span className="home-plate" />
     </div>
   );
@@ -579,14 +591,24 @@ function SnapshotTeam({ label, side, actor }: { label: string; side: VisualSide;
         <small>루상 주자</small>
         <div>
           {side.bases.some(Boolean)
-            ? side.bases.map((runner, index) => runner && <b key={`${runner.cardId}-${index}`}>{index + 1}루 · {speedLabel[runner.speed]}</b>)
+            ? side.bases.map((runner, index) => runner && <b className={`speed-${runner.speed}`} key={`${runner.cardId}-${index}`}>{index + 1}루 · {speedLabel[runner.speed]}</b>)
             : <em>없음</em>}
         </div>
       </div>
       <div className="snapshot-threats">
         <small>위협 안타 대기</small>
-        <div>{side.pending.length ? side.pending.map((hit, index) => <b key={`${hit}-${index}`}>{hitLabel[hit]}</b>) : <em>없음</em>}</div>
+        <div>{side.pending.length ? side.pending.map((hit, index) => <b className={`speed-${side.pendingSpeed ?? "average"}`} key={`${hit}-${index}`}>{hitLabel[hit]} · {speedLabel[side.pendingSpeed ?? "average"]}</b>) : <em>없음</em>}</div>
       </div>
+    </div>
+  );
+}
+
+function SpeedLegend() {
+  return (
+    <div className="speed-legend" aria-label="주자 속도 색상">
+      <span className="speed-fast">빠른 주자</span>
+      <span className="speed-average">일반 주자</span>
+      <span className="speed-slow">느린 주자</span>
     </div>
   );
 }
@@ -642,6 +664,9 @@ export function GamePrototype() {
   const [playbackIndex, setPlaybackIndex] = useState(0);
   const [playbackRunning, setPlaybackRunning] = useState(false);
   const playbackTimers = useRef<Array<ReturnType<typeof setTimeout>>>([]);
+  const playbackAnchorRef = useRef<HTMLDivElement>(null);
+  const handAnchorRef = useRef<HTMLElement>(null);
+  const previousPlaybackRunning = useRef(false);
 
   useEffect(() => {
     playbackTimers.current.forEach(clearTimeout);
@@ -669,6 +694,18 @@ export function GamePrototype() {
       playbackTimers.current = [];
     };
   }, [game.lastResolution, game.resolutionKey]);
+
+  useEffect(() => {
+    const wasRunning = previousPlaybackRunning.current;
+    previousPlaybackRunning.current = playbackRunning;
+    if (game.resolutionKey === 0 || typeof window === "undefined" || !window.matchMedia("(max-width: 760px)").matches) return;
+    const target = playbackRunning ? playbackAnchorRef.current : wasRunning ? handAnchorRef.current : null;
+    if (!target) return;
+    const timer = window.setTimeout(() => {
+      target.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, playbackRunning ? 90 : 180);
+    return () => window.clearTimeout(timer);
+  }, [game.resolutionKey, playbackRunning]);
 
   function skipPlayback() {
     playbackTimers.current.forEach(clearTimeout);
@@ -994,13 +1031,15 @@ export function GamePrototype() {
 
       <ResolutionConsole game={game} activeIndex={playbackIndex} running={playbackRunning} />
 
-      <PlaybackStage
-        event={game.lastResolution[playbackIndex]}
-        index={playbackStep}
-        total={playbackTotal}
-        running={playbackRunning}
-        onSkip={skipPlayback}
-      />
+      <div className="playback-anchor" ref={playbackAnchorRef}>
+        <PlaybackStage
+          event={game.lastResolution[playbackIndex]}
+          index={playbackStep}
+          total={playbackTotal}
+          running={playbackRunning}
+          onSkip={skipPlayback}
+        />
+      </div>
 
       <section className="stadium-board">
         <div className="dugout cpu-dugout">
@@ -1017,9 +1056,10 @@ export function GamePrototype() {
         </div>
 
         <div className="field-zone">
+          <SpeedLegend />
           <div className="threat-box opponent-threat">
             <span>CPU 위협 안타</span>
-            <div>{game.cpu.pending.length ? game.cpu.pending.map((hit, index) => <b key={`${hit}-${index}`}>{hitLabel[hit]}</b>) : <em>없음</em>}</div>
+            <div>{game.cpu.pending.length ? game.cpu.pending.map((hit, index) => <b className={`speed-${game.cpu.pendingSpeed ?? "average"}`} key={`${hit}-${index}`}>{hitLabel[hit]} · {speedLabel[game.cpu.pendingSpeed ?? "average"]}</b>) : <em>없음</em>}</div>
           </div>
           <div className="field-score">
             <div>
@@ -1036,7 +1076,7 @@ export function GamePrototype() {
           </div>
           <div className="threat-box player-threat">
             <span>내 위협 안타</span>
-            <div>{game.player.pending.length ? game.player.pending.map((hit, index) => <b key={`${hit}-${index}`}>{hitLabel[hit]}</b>) : <em>없음</em>}</div>
+            <div>{game.player.pending.length ? game.player.pending.map((hit, index) => <b className={`speed-${game.player.pendingSpeed ?? "average"}`} key={`${hit}-${index}`}>{hitLabel[hit]} · {speedLabel[game.player.pendingSpeed ?? "average"]}</b>) : <em>없음</em>}</div>
           </div>
         </div>
 
@@ -1101,7 +1141,7 @@ export function GamePrototype() {
           )}
         </section>
       ) : (
-        <section className={`hand-section ${playbackRunning ? "is-locked" : ""}`}>
+        <section ref={handAnchorRef} className={`hand-section ${playbackRunning ? "is-locked" : ""}`}>
           <div className="section-heading">
             <div>
               <p>ROUND {game.round} · YOUR MOVE</p>
