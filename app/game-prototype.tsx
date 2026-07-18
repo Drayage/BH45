@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type CSSProperties } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import cardData from "@/data/base-cards.json";
 
 type PlayerType = "natural" | "cyborg" | "robot";
@@ -43,6 +43,24 @@ type ResolutionEvent = {
   actor: "player" | "cpu" | "system";
   title: string;
   detail: string;
+  card?: Card;
+  snapshot?: ResolutionSnapshot;
+};
+
+type VisualSide = {
+  pending: ThreatHit[];
+  bases: Array<Runner | null>;
+  score: number;
+};
+
+type ResolutionSnapshot = {
+  player: VisualSide;
+  cpu: VisualSide;
+};
+
+type MoveFrame = {
+  acting: VisualSide;
+  opposing: VisualSide;
 };
 
 type GameState = {
@@ -168,6 +186,20 @@ function cloneSide(side: Side): Side {
     bases: [...side.bases],
     pending: [...side.pending],
   };
+}
+
+function visualSide(side: Side): VisualSide {
+  return { pending: [...side.pending], bases: [...side.bases], score: side.score };
+}
+
+function orientFrame(actor: "player" | "cpu", frame: MoveFrame): ResolutionSnapshot {
+  return actor === "player"
+    ? { player: frame.acting, cpu: frame.opposing }
+    : { player: frame.opposing, cpu: frame.acting };
+}
+
+function snapshotSides(player: Side, cpu: Side): ResolutionSnapshot {
+  return { player: visualSide(player), cpu: visualSide(cpu) };
 }
 
 function advanceHit(side: Side, hit: ThreatHit, source: Card | undefined) {
@@ -327,15 +359,20 @@ function commitPending(side: Side, source: Card | undefined) {
 
 function playOne(card: Card, acting: Side, opposing: Side) {
   const opposingLast = opposing.played.at(-1);
+  const revealFrame: MoveFrame = { acting: visualSide(acting), opposing: visualSide(opposing) };
   const events = applyAbility(card, acting, opposing, opposingLast, acting.played.length);
+  const abilityFrame: MoveFrame = { acting: visualSide(acting), opposing: visualSide(opposing) };
   const settled = commitPending(opposing, opposingLast);
+  const settleFrame: MoveFrame = { acting: visualSide(acting), opposing: visualSide(opposing) };
   acting.hand = acting.hand.filter((item) => item.id !== card.id);
   acting.played.push(card);
   acting.revenue += card.revenue;
   acting.pending.push(...card.hits);
+  const threatFrame: MoveFrame = { acting: visualSide(acting), opposing: visualSide(opposing) };
   return {
     events,
     settled,
+    frames: { reveal: revealFrame, ability: abilityFrame, settle: settleFrame, threat: threatFrame },
     line: `${teamCode[acting.team]} · ${card.id} ${typeLabel[card.type]} / ${card.hits.map((hit) => hitLabel[hit]).join(" + ") || "안타 없음"}`,
   };
 }
@@ -438,27 +475,31 @@ function moveEvents(actor: "player" | "cpu", card: Card, move: ReturnType<typeof
   const who = actor === "player" ? "내 카드" : "CPU 카드";
   const threatened = card.hits.length ? card.hits.map((hit) => hitLabel[hit]).join(" + ") : "위협 안타 없음";
   return [
-    { kind: "reveal", actor, title: `${who} 공개`, detail: `${card.id} · ${typeLabel[card.type]} · 수익 ${card.revenue}` },
+    { kind: "reveal", actor, title: `${who} 공개`, detail: `${card.id} · ${typeLabel[card.type]} · 수익 ${card.revenue}`, card, snapshot: orientFrame(actor, move.frames.reveal) },
     {
       kind: "ability",
       actor,
       title: "즉시 능력 처리",
       detail: move.events.length ? move.events.join(" ") : (card.abilityTextKo ?? "발동할 즉시 능력이 없습니다."),
+      card,
+      snapshot: orientFrame(actor, move.frames.ability),
     },
     {
       kind: "settle",
-      actor: actor === "player" ? "cpu" : "player",
+      actor,
       title: "상대 위협 확정",
       detail: move.settled.length ? `${move.settled.map((hit) => hitLabel[hit]).join(" + ")}를 베이스에 반영했습니다.` : "남은 위협 안타가 없습니다.",
+      card,
+      snapshot: orientFrame(actor, move.frames.settle),
     },
-    { kind: "threat", actor, title: "새 위협 등록", detail: threatened },
+    { kind: "threat", actor, title: "새 위협 등록", detail: threatened, card, snapshot: orientFrame(actor, move.frames.threat) },
   ];
 }
 
-function ResolutionConsole({ game }: { game: GameState }) {
-  const last = game.lastResolution.at(-1);
+function ResolutionConsole({ game, activeIndex, running }: { game: GameState; activeIndex: number; running: boolean }) {
+  const active = game.lastResolution[activeIndex] ?? game.lastResolution.at(-1);
   return (
-    <section className="resolution-console" key={game.resolutionKey} aria-live="polite">
+    <section className={`resolution-console ${running ? "is-running" : ""}`} key={game.resolutionKey} aria-live="polite">
       <div className="resolution-header">
         <div><p>LIVE RESOLUTION</p><h2>플레이 처리 중계</h2></div>
         <div className="turn-order"><b>원정 YOU · 선공</b><span>→</span><b>홈 CPU · 후공</b></div>
@@ -469,7 +510,7 @@ function ResolutionConsole({ game }: { game: GameState }) {
       <div className="event-track">
         {game.lastResolution.map((event, index) => (
           <article
-            className={`event-card actor-${event.actor} kind-${event.kind}`}
+            className={`event-card actor-${event.actor} kind-${event.kind} ${index === activeIndex ? "is-active" : ""} ${index < activeIndex ? "is-resolved" : ""} ${running && index > activeIndex ? "is-upcoming" : ""}`}
             key={`${game.resolutionKey}-${index}-${event.title}`}
             style={{ animationDelay: `${index * 90}ms` } as CSSProperties}
           >
@@ -479,7 +520,7 @@ function ResolutionConsole({ game }: { game: GameState }) {
           </article>
         ))}
       </div>
-      {last && <div className={`broadcast-call actor-${last.actor}`}><b>NOW</b><span>{last.title}</span><em>{last.detail}</em></div>}
+      {active && <div className={`broadcast-call actor-${active.actor}`} key={`${game.resolutionKey}-${activeIndex}`}><b>{running ? "NOW" : "LAST"}</b><span>{active.title}</span><em>{active.detail}</em></div>}
     </section>
   );
 }
@@ -529,6 +570,52 @@ function BaseDiamond({ bases }: { bases: Array<Runner | null> }) {
   );
 }
 
+function SnapshotTeam({ label, side, actor }: { label: string; side: VisualSide; actor: "player" | "cpu" }) {
+  return (
+    <div className={`snapshot-team snapshot-${actor}`}>
+      <div className="snapshot-score"><span>{label}</span><strong>{side.score}</strong></div>
+      <BaseDiamond bases={side.bases} />
+      <div className="runner-readout">
+        <small>루상 주자</small>
+        <div>
+          {side.bases.some(Boolean)
+            ? side.bases.map((runner, index) => runner && <b key={`${runner.cardId}-${index}`}>{index + 1}루 · {speedLabel[runner.speed]}</b>)
+            : <em>없음</em>}
+        </div>
+      </div>
+      <div className="snapshot-threats">
+        <small>위협 안타 대기</small>
+        <div>{side.pending.length ? side.pending.map((hit, index) => <b key={`${hit}-${index}`}>{hitLabel[hit]}</b>) : <em>없음</em>}</div>
+      </div>
+    </div>
+  );
+}
+
+function PlaybackStage({ event, index, total, running, onSkip }: { event: ResolutionEvent | undefined; index: number; total: number; running: boolean; onSkip: () => void }) {
+  if (!event?.snapshot) return null;
+  const actingLabel = event.actor === "player" ? "YOU" : event.actor === "cpu" ? "CPU" : "RULE";
+  return (
+    <section className={`playback-stage actor-${event.actor} playback-${event.kind}`} key={`${index}-${event.title}`} aria-label="현재 카드 처리 연출">
+      <div className="playback-call">
+        <div className="playback-progress"><span style={{ width: `${((index + 1) / total) * 100}%` }} /></div>
+        <small>{actingLabel} · STEP {index + 1}/{total}</small>
+        <h2>{event.title}</h2>
+        <p>{event.detail}</p>
+        {running && <button type="button" onClick={onSkip}>연출 건너뛰기</button>}
+      </div>
+      <div className="playback-card-slot">
+        {event.card && <PlayerCard card={event.card} disabled />}
+        <span className="effect-burst" aria-hidden="true" />
+      </div>
+      <div className="snapshot-field">
+        <SnapshotTeam label="CPU · 홈" side={event.snapshot.cpu} actor="cpu" />
+        <div className="snapshot-divider"><span>처리</span><i>→</i></div>
+        <SnapshotTeam label="YOU · 원정" side={event.snapshot.player} actor="player" />
+      </div>
+    </section>
+  );
+}
+
 function ScorePanel({ game }: { game: GameState }) {
   return (
     <section className="score-panel" aria-label="점수판">
@@ -552,6 +639,44 @@ export function GamePrototype() {
   const [selectedTeam, setSelectedTeam] = useState("San Francisco");
   const [game, setGame] = useState<GameState>(() => makeGame("San Francisco"));
   const [showRules, setShowRules] = useState(false);
+  const [playbackIndex, setPlaybackIndex] = useState(0);
+  const [playbackRunning, setPlaybackRunning] = useState(false);
+  const playbackTimers = useRef<Array<ReturnType<typeof setTimeout>>>([]);
+
+  useEffect(() => {
+    playbackTimers.current.forEach(clearTimeout);
+    playbackTimers.current = [];
+    const playable = game.lastResolution
+      .map((event, index) => event.snapshot ? index : -1)
+      .filter((index) => index >= 0);
+    if (game.resolutionKey === 0 || playable.length === 0) {
+      playbackTimers.current.push(setTimeout(() => {
+        setPlaybackIndex(Math.max(0, game.lastResolution.length - 1));
+        setPlaybackRunning(false);
+      }, 0));
+    } else {
+      playbackTimers.current.push(setTimeout(() => {
+        setPlaybackIndex(playable[0]);
+        setPlaybackRunning(true);
+      }, 0));
+      playable.slice(1).forEach((eventIndex, order) => {
+        playbackTimers.current.push(setTimeout(() => setPlaybackIndex(eventIndex), (order + 1) * 920));
+      });
+      playbackTimers.current.push(setTimeout(() => setPlaybackRunning(false), playable.length * 920 + 180));
+    }
+    return () => {
+      playbackTimers.current.forEach(clearTimeout);
+      playbackTimers.current = [];
+    };
+  }, [game.lastResolution, game.resolutionKey]);
+
+  function skipPlayback() {
+    playbackTimers.current.forEach(clearTimeout);
+    playbackTimers.current = [];
+    const lastPlayable = game.lastResolution.findLastIndex((event) => Boolean(event.snapshot));
+    if (lastPlayable >= 0) setPlaybackIndex(lastPlayable);
+    setPlaybackRunning(false);
+  }
 
   function restart(team = selectedTeam) {
     setGame(makeGame(team));
@@ -563,7 +688,7 @@ export function GamePrototype() {
   }
 
   function playRound(cardId: string) {
-    if (game.phase !== "playing") return;
+    if (game.phase !== "playing" || playbackRunning) return;
     setGame((current) => {
       const player = cloneSide(current.player);
       const cpu = cloneSide(current.cpu);
@@ -605,6 +730,8 @@ export function GamePrototype() {
             detail: saveEvents.length
               ? `${saveCard.id} 공개 · ${saveEvents.join(" ")}`
               : `${saveCard.id} 공개 · 적용 가능한 수비 능력이 없습니다.`,
+            card: saveCard,
+            snapshot: snapshotSides(player, cpu),
           });
           log.push(`비지터 세이브 · ${saveCard.id} ${saveEvents.join(" ") || "수비 효과 없음"}`);
         }
@@ -614,6 +741,7 @@ export function GamePrototype() {
           actor: "cpu",
           title: "홈팀 마지막 위협 확정",
           detail: finalCpu.length ? finalCpu.map((hit) => hitLabel[hit]).join(" + ") : "모든 위협을 막았습니다.",
+          snapshot: snapshotSides(player, cpu),
         });
         if (finalCpu.length) log.push(`경기 종료 · 상대 마지막 ${finalCpu.map((hit) => hitLabel[hit]).join(", ")} 확정`);
         log.push(`FINAL ${teamCode[player.team]} ${player.score} : ${cpu.score} ${teamCode[cpu.team]}`);
@@ -809,6 +937,9 @@ export function GamePrototype() {
     });
   }
 
+  const playbackTotal = game.lastResolution.filter((event) => Boolean(event.snapshot)).length;
+  const playbackStep = Math.max(0, game.lastResolution.slice(0, playbackIndex + 1).filter((event) => Boolean(event.snapshot)).length - 1);
+
   return (
     <main className="game-shell">
       <header className="topbar">
@@ -861,7 +992,15 @@ export function GamePrototype() {
 
       <ScorePanel game={game} />
 
-      <ResolutionConsole game={game} />
+      <ResolutionConsole game={game} activeIndex={playbackIndex} running={playbackRunning} />
+
+      <PlaybackStage
+        event={game.lastResolution[playbackIndex]}
+        index={playbackStep}
+        total={playbackTotal}
+        running={playbackRunning}
+        onSkip={skipPlayback}
+      />
 
       <section className="stadium-board">
         <div className="dugout cpu-dugout">
@@ -962,7 +1101,7 @@ export function GamePrototype() {
           )}
         </section>
       ) : (
-        <section className="hand-section">
+        <section className={`hand-section ${playbackRunning ? "is-locked" : ""}`}>
           <div className="section-heading">
             <div>
               <p>ROUND {game.round} · YOUR MOVE</p>
@@ -976,6 +1115,7 @@ export function GamePrototype() {
                 key={card.id}
                 card={card}
                 selected={game.selectedId === card.id}
+                disabled={playbackRunning}
                 onClick={() => playRound(card.id)}
               />
             ))}
