@@ -28,6 +28,8 @@ type Runner = { cardId: string; speed: Speed };
 type Side = {
   team: string;
   deck: Card[];
+  discard: Card[];
+  minors: Card[];
   hand: Card[];
   played: Card[];
   bases: Array<Runner | null>;
@@ -40,7 +42,18 @@ type GameState = {
   player: Side;
   cpu: Side;
   round: number;
-  phase: "playing" | "finished";
+  phase: "playing" | "buying" | "series_finished";
+  stage: "exhibition" | "world_series";
+  gameNumber: number;
+  exhibitionWins: { player: number; cpu: number };
+  worldSeriesWins: { player: number; cpu: number };
+  market: Card[];
+  freeAgentDeck: Card[];
+  playerBudget: number;
+  cpuBudget: number;
+  purchaseTurn: "player" | "cpu" | null;
+  cpuBought: boolean;
+  pendingPurchaseId: string | null;
   selectedId: string | null;
   log: string[];
 };
@@ -90,6 +103,8 @@ function makeSide(team: string): Side {
   return {
     team,
     deck: deck.slice(6),
+    discard: [],
+    minors: [],
     hand: deck.slice(0, 6),
     played: [],
     bases: [null, null, null],
@@ -102,11 +117,23 @@ function makeSide(team: string): Side {
 function makeGame(playerTeam: string): GameState {
   const rivals = teams.filter((team) => team !== playerTeam);
   const cpuTeam = rivals[Math.floor(Math.random() * rivals.length)];
+  const freeAgents = shuffle(cards.filter((card) => card.category === "free_agent" && card.id.startsWith("FA-")));
   return {
     player: makeSide(playerTeam),
     cpu: makeSide(cpuTeam),
     round: 1,
     phase: "playing",
+    stage: "exhibition",
+    gameNumber: 1,
+    exhibitionWins: { player: 0, cpu: 0 },
+    worldSeriesWins: { player: 0, cpu: 0 },
+    market: freeAgents.slice(0, 6),
+    freeAgentDeck: freeAgents.slice(6),
+    playerBudget: 0,
+    cpuBudget: 0,
+    purchaseTurn: null,
+    cpuBought: false,
+    pendingPurchaseId: null,
     selectedId: null,
     log: [
       `${teamLabel[playerTeam]} vs ${teamLabel[cpuTeam]}`,
@@ -116,7 +143,16 @@ function makeGame(playerTeam: string): GameState {
 }
 
 function cloneSide(side: Side): Side {
-  return { ...side, hand: [...side.hand], played: [...side.played], bases: [...side.bases], pending: [...side.pending] };
+  return {
+    ...side,
+    deck: [...side.deck],
+    discard: [...side.discard],
+    minors: [...side.minors],
+    hand: [...side.hand],
+    played: [...side.played],
+    bases: [...side.bases],
+    pending: [...side.pending],
+  };
 }
 
 function advanceHit(side: Side, hit: ThreatHit, source: Card | undefined) {
@@ -278,10 +314,87 @@ function chooseCpuCard(side: Side, opponent: Side) {
   return ranked[0];
 }
 
-function resultLabel(game: GameState) {
-  if (game.player.score > game.cpu.score) return "승리";
-  if (game.player.score < game.cpu.score) return "패배";
-  return "무승부";
+function drawNextLineup(side: Side) {
+  side.discard.push(...side.played);
+  side.played = [];
+  side.hand = [];
+  while (side.hand.length < 6) {
+    if (side.deck.length === 0) {
+      side.deck = shuffle(side.discard);
+      side.discard = [];
+    }
+    const next = side.deck.shift();
+    if (!next) break;
+    side.hand.push(next);
+  }
+  side.bases = [null, null, null];
+  side.pending = [];
+  side.score = 0;
+  side.revenue = 0;
+}
+
+function drawExtraInnings(side: Side) {
+  side.hand = [];
+  while (side.hand.length < 3) {
+    if (side.deck.length === 0) {
+      side.deck = shuffle(side.discard);
+      side.discard = [];
+    }
+    const next = side.deck.shift();
+    if (!next) break;
+    side.hand.push(next);
+  }
+}
+
+function replenishMarket(market: Card[], freeAgentDeck: Card[], purchasedId: string) {
+  const nextMarket = market.filter((card) => card.id !== purchasedId);
+  const nextDeck = [...freeAgentDeck];
+  const replacement = nextDeck.shift();
+  if (replacement) nextMarket.push(replacement);
+  return { market: nextMarket, freeAgentDeck: nextDeck };
+}
+
+function cardValue(card: Card) {
+  return card.hits.reduce((total, hit) => total + (hit === "home_run" ? 5 : hit === "triple" ? 4 : hit === "double" ? 3 : 2), 0)
+    + card.revenue
+    + (card.abilityText ? 2 : 0)
+    + (card.speed === "fast" ? 1 : 0);
+}
+
+function runCpuBuy(cpuInput: Side, marketInput: Card[], freeAgentDeckInput: Card[], budgetInput: number) {
+  const cpu = cloneSide(cpuInput);
+  let market = [...marketInput];
+  let freeAgentDeck = [...freeAgentDeckInput];
+  let budget = budgetInput;
+  const purchases: string[] = [];
+
+  while (cpu.played.length && market.some((card) => (card.cost ?? 999) <= budget)) {
+    const affordable = market
+      .filter((card) => (card.cost ?? 999) <= budget)
+      .sort((a, b) => cardValue(b) - cardValue(a) || (b.cost ?? 0) - (a.cost ?? 0));
+    const recruit = affordable[0];
+    const demote = [...cpu.played].sort((a, b) => cardValue(a) - cardValue(b))[0];
+    budget -= recruit.cost ?? 0;
+    cpu.deck.unshift(recruit);
+    cpu.played = cpu.played.filter((card) => card.id !== demote.id);
+    cpu.minors.push(demote);
+    const replenished = replenishMarket(market, freeAgentDeck, recruit.id);
+    market = replenished.market;
+    freeAgentDeck = replenished.freeAgentDeck;
+    purchases.push(`${recruit.id} 영입 / ${demote.id} 마이너`);
+  }
+
+  return { cpu, market, freeAgentDeck, budget, purchases };
+}
+
+function miniGameWinner(player: Side, cpu: Side): "player" | "cpu" | "tie" {
+  if (player.score > cpu.score) return "player";
+  if (player.score < cpu.score) return "cpu";
+  return "tie";
+}
+
+function activeRoster(side: Side) {
+  return [...side.deck, ...side.discard, ...side.hand, ...side.played];
 }
 
 function PlayerCard({ card, selected, disabled, onClick }: { card: Card; selected?: boolean; disabled?: boolean; onClick?: () => void }) {
@@ -337,8 +450,8 @@ function ScorePanel({ game }: { game: GameState }) {
         <strong>{game.cpu.score}</strong>
       </div>
       <div className="inning-cell">
-        <small>MINI GAME</small>
-        <b>{game.phase === "finished" ? "FINAL" : `${game.round} / 6`}</b>
+        <small>{game.stage === "exhibition" ? `EXHIBITION ${game.gameNumber}/3` : `WORLD SERIES ${game.gameNumber}`}</small>
+        <b>{game.phase === "playing" ? `${game.round} / 6` : "FINAL"}</b>
       </div>
       <div className="score-team home-score">
         <strong>{game.player.score}</strong>
@@ -389,13 +502,171 @@ export function GamePrototype() {
         const finalCpu = commitPending(cpu, cpu.played.at(-1));
         if (finalCpu.length) log.push(`경기 종료 · 상대 마지막 ${finalCpu.map((hit) => hitLabel[hit]).join(", ")} 확정`);
         log.push(`FINAL ${teamCode[player.team]} ${player.score} : ${cpu.score} ${teamCode[cpu.team]}`);
+
+        if (player.score === cpu.score) {
+          drawExtraInnings(player);
+          drawExtraInnings(cpu);
+          log.push("동점 · 양 팀이 3장씩 뽑아 연장전에 들어갑니다.");
+          return {
+            ...current,
+            player,
+            cpu,
+            round: current.round + 1,
+            phase: "playing",
+            selectedId: null,
+            log,
+          };
+        }
+
+        const winner = miniGameWinner(player, cpu);
+        const exhibitionWins = { ...current.exhibitionWins };
+        const worldSeriesWins = { ...current.worldSeriesWins };
+        if (current.stage === "exhibition") exhibitionWins[winner as "player" | "cpu"] += 1;
+        else worldSeriesWins[winner as "player" | "cpu"] += 1;
+
+        if (current.stage === "world_series" && Math.max(worldSeriesWins.player, worldSeriesWins.cpu) >= 4) {
+          log.push(`${worldSeriesWins.player > worldSeriesWins.cpu ? "월드 시리즈 우승!" : "월드 시리즈 준우승"} · ${worldSeriesWins.player}-${worldSeriesWins.cpu}`);
+          return {
+            ...current,
+            player,
+            cpu,
+            round: current.round,
+            phase: "series_finished",
+            exhibitionWins,
+            worldSeriesWins,
+            playerBudget: player.revenue,
+            cpuBudget: cpu.revenue,
+            selectedId: null,
+            log,
+          };
+        }
+
+        let market = [...current.market];
+        let freeAgentDeck = [...current.freeAgentDeck];
+        let nextCpu = cpu;
+        let cpuBudget = cpu.revenue;
+        const firstBuyer = player.revenue < cpu.revenue
+          ? "player"
+          : cpu.revenue < player.revenue
+            ? "cpu"
+            : winner === "player" ? "cpu" : "player";
+
+        if (firstBuyer === "cpu") {
+          const cpuBuy = runCpuBuy(cpu, market, freeAgentDeck, cpuBudget);
+          nextCpu = cpuBuy.cpu;
+          market = cpuBuy.market;
+          freeAgentDeck = cpuBuy.freeAgentDeck;
+          cpuBudget = cpuBuy.budget;
+          cpuBuy.purchases.forEach((purchase) => log.push(`CPU 구매 · ${purchase}`));
+        }
+        log.push(`구매 라운드 · 내 예산 ${player.revenue}, CPU 예산 ${cpu.revenue}`);
+
+        return {
+          ...current,
+          player,
+          cpu: nextCpu,
+          round: current.round,
+          phase: "buying",
+          exhibitionWins,
+          worldSeriesWins,
+          market,
+          freeAgentDeck,
+          playerBudget: player.revenue,
+          cpuBudget,
+          purchaseTurn: "player",
+          cpuBought: firstBuyer === "cpu",
+          pendingPurchaseId: null,
+          selectedId: null,
+          log,
+        };
       }
 
       return {
+        ...current,
         player,
         cpu,
         round: finished ? 6 : nextRound,
-        phase: finished ? "finished" : "playing",
+        phase: "playing",
+        selectedId: null,
+        log,
+      };
+    });
+  }
+
+  function selectFreeAgent(cardId: string) {
+    setGame((current) => {
+      if (current.phase !== "buying" || current.purchaseTurn !== "player") return current;
+      const card = current.market.find((item) => item.id === cardId);
+      if (!card || (card.cost ?? 999) > current.playerBudget || current.player.played.length === 0) return current;
+      return { ...current, pendingPurchaseId: current.pendingPurchaseId === cardId ? null : cardId };
+    });
+  }
+
+  function sendToMinors(cardId: string) {
+    setGame((current) => {
+      if (current.phase !== "buying" || !current.pendingPurchaseId) return current;
+      const recruit = current.market.find((card) => card.id === current.pendingPurchaseId);
+      const demote = current.player.played.find((card) => card.id === cardId);
+      if (!recruit || !demote || (recruit.cost ?? 999) > current.playerBudget) return current;
+      const player = cloneSide(current.player);
+      player.deck.unshift(recruit);
+      player.played = player.played.filter((card) => card.id !== demote.id);
+      player.minors.push(demote);
+      const replenished = replenishMarket(current.market, current.freeAgentDeck, recruit.id);
+      return {
+        ...current,
+        player,
+        market: replenished.market,
+        freeAgentDeck: replenished.freeAgentDeck,
+        playerBudget: current.playerBudget - (recruit.cost ?? 0),
+        pendingPurchaseId: null,
+        log: [...current.log, `영입 · ${recruit.id} ${recruit.name} / ${demote.id} 마이너 이동`],
+      };
+    });
+  }
+
+  function finishBuyRound() {
+    setGame((current) => {
+      if (current.phase !== "buying") return current;
+      const player = cloneSide(current.player);
+      let cpu = cloneSide(current.cpu);
+      let market = [...current.market];
+      let freeAgentDeck = [...current.freeAgentDeck];
+      let cpuBudget = current.cpuBudget;
+      const log = [...current.log];
+
+      if (!current.cpuBought) {
+        const cpuBuy = runCpuBuy(cpu, market, freeAgentDeck, cpuBudget);
+        cpu = cpuBuy.cpu;
+        market = cpuBuy.market;
+        freeAgentDeck = cpuBuy.freeAgentDeck;
+        cpuBudget = cpuBuy.budget;
+        cpuBuy.purchases.forEach((purchase) => log.push(`CPU 구매 · ${purchase}`));
+      }
+
+      drawNextLineup(player);
+      drawNextLineup(cpu);
+      const enterWorldSeries = current.stage === "exhibition" && current.gameNumber === 3;
+      const stage = enterWorldSeries ? "world_series" : current.stage;
+      const gameNumber = enterWorldSeries ? 1 : current.gameNumber + 1;
+      if (enterWorldSeries) log.push("3경기 미니 시즌 종료 · 7전 4선승 월드 시리즈 시작");
+      else log.push(`${stage === "exhibition" ? "미니 시즌" : "월드 시리즈"} ${gameNumber}차전 시작`);
+
+      return {
+        ...current,
+        player,
+        cpu,
+        market,
+        freeAgentDeck,
+        stage,
+        gameNumber,
+        round: 1,
+        phase: "playing",
+        playerBudget: 0,
+        cpuBudget,
+        purchaseTurn: null,
+        cpuBought: false,
+        pendingPurchaseId: null,
         selectedId: null,
         log,
       };
@@ -436,6 +707,18 @@ export function GamePrototype() {
             <b>{teamCode[team]}</b> {teamLabel[team]}
           </button>
         ))}
+      </section>
+
+      <section className="series-strip" aria-label="시리즈 진행 상황">
+        <div className={game.stage === "exhibition" ? "current" : "complete"}>
+          <span>미니 시즌 · 3경기</span>
+          <strong>{game.exhibitionWins.player} — {game.exhibitionWins.cpu}</strong>
+        </div>
+        <i>→</i>
+        <div className={game.stage === "world_series" ? "current" : ""}>
+          <span>월드 시리즈 · 4선승</span>
+          <strong>{game.worldSeriesWins.player} — {game.worldSeriesWins.cpu}</strong>
+        </div>
       </section>
 
       <ScorePanel game={game} />
@@ -489,13 +772,54 @@ export function GamePrototype() {
         </div>
       </section>
 
-      {game.phase === "finished" ? (
+      {game.phase === "series_finished" ? (
         <section className="result-panel">
-          <p>MINI GAME FINAL</p>
-          <h2>{resultLabel(game)}</h2>
-          <strong>{teamCode[game.player.team]} {game.player.score} — {game.cpu.score} {teamCode[game.cpu.team]}</strong>
-          <span>획득 수익 {game.player.revenue} · 다음 단계에서 자유계약 시장 구매에 사용</span>
-          <button type="button" onClick={() => restart()}>같은 팀으로 다시 경기</button>
+          <p>WORLD SERIES FINAL</p>
+          <h2>{game.worldSeriesWins.player > game.worldSeriesWins.cpu ? "챔피언" : "준우승"}</h2>
+          <strong>{teamCode[game.player.team]} {game.worldSeriesWins.player} — {game.worldSeriesWins.cpu} {teamCode[game.cpu.team]}</strong>
+          <span>3경기 미니 시즌과 7전 4선승 월드 시리즈를 완료했습니다.</span>
+          <button type="button" onClick={() => restart()}>같은 팀으로 새 시즌</button>
+        </section>
+      ) : game.phase === "buying" ? (
+        <section className="buy-section">
+          <div className="buy-header">
+            <div>
+              <p>BUY ROUND · 예산은 이 라운드에서만 사용</p>
+              <h2>자유계약 선수 영입</h2>
+            </div>
+            <div className="budget-chip"><span>내 예산</span><strong>{game.playerBudget}</strong></div>
+            <button type="button" className="finish-buy" onClick={finishBuyRound}>구매 종료 · 다음 경기</button>
+          </div>
+          <div className="market-lineup">
+            {game.market.map((card) => {
+              const affordable = (card.cost ?? 999) <= game.playerBudget;
+              return (
+                <div className="market-slot" key={card.id}>
+                  <PlayerCard
+                    card={card}
+                    selected={game.pendingPurchaseId === card.id}
+                    disabled={!affordable}
+                    onClick={() => selectFreeAgent(card.id)}
+                  />
+                  <span className={affordable ? "can-buy" : "cannot-buy"}>비용 {card.cost} · {affordable ? "영입 가능" : "예산 부족"}</span>
+                </div>
+              );
+            })}
+          </div>
+          {game.pendingPurchaseId ? (
+            <div className="demote-panel">
+              <div><p>ROSTER MUST STAY AT 15</p><h3>마이너로 보낼 이번 경기 선수를 선택하세요</h3></div>
+              <div className="demote-cards">
+                {game.player.played.map((card) => (
+                  <button type="button" key={card.id} onClick={() => sendToMinors(card.id)}>
+                    <b>{card.id}</b><span>{typeLabel[card.type]}</span><em>수익 {card.revenue}</em>
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <p className="buy-help">영입할 FA 카드를 먼저 선택하세요. 구매한 선수는 덱 맨 위에 놓여 다음 경기에 반드시 등장합니다.</p>
+          )}
         </section>
       ) : (
         <section className="hand-section">
@@ -532,16 +856,16 @@ export function GamePrototype() {
 
         <article className="deck-status">
           <div className="section-heading compact">
-            <div><p>STARTER DECK</p><h2>내 시작 덱 구성</h2></div>
-            <span>FA 카드 0장</span>
+            <div><p>ACTIVE ROSTER</p><h2>내 15인 로스터</h2></div>
+            <span>FA 카드 {activeRoster(game.player).filter((card) => card.category === "free_agent").length}장</span>
           </div>
           <div className="deck-counts">
-            <div><span>전체</span><strong>15</strong><em>ST 카드</em></div>
-            <div><span>손패</span><strong>{game.player.hand.length}</strong><em>플레이 가능</em></div>
-            <div><span>플레이</span><strong>{game.player.played.length}</strong><em>사용 완료</em></div>
-            <div><span>덱</span><strong>{game.player.deck.length}</strong><em>미사용</em></div>
+            <div><span>전체</span><strong>{activeRoster(game.player).length}</strong><em>항상 15명</em></div>
+            <div><span>FA</span><strong>{activeRoster(game.player).filter((card) => card.category === "free_agent").length}</strong><em>영입 선수</em></div>
+            <div><span>마이너</span><strong>{game.player.minors.length}</strong><em>로스터 제외</em></div>
+            <div><span>대기 덱</span><strong>{game.player.deck.length}</strong><em>다음 드로우</em></div>
           </div>
-          <p className="coming-note">현재 미니게임에는 선택한 팀의 ST 카드 15장만 들어갑니다. FA 카드는 미니게임 종료 후 구매 단계가 구현될 때 별도 시장에서만 나타납니다.</p>
+          <p className="coming-note">시작은 ST 15장입니다. FA를 한 장 영입할 때마다 이번 경기에 사용한 선수 한 명을 마이너로 보내므로 활성 로스터는 항상 15장으로 유지됩니다.</p>
         </article>
       </section>
 

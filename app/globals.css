@@ -111,6 +111,14 @@ button:focus-visible { outline: 3px solid #f6c969; outline-offset: 3px; }
 .team-picker button.active { color: var(--ink); background: var(--paper); border-color: var(--paper); }
 .team-picker button.active b { color: #a44d35; }
 
+.series-strip { display: flex; align-items: center; justify-content: center; gap: 14px; margin: 0 auto 13px; }
+.series-strip > div { min-width: 205px; display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 8px 12px; border: 1px solid rgba(255,255,255,.1); border-radius: 4px; color: #6f858e; background: rgba(255,255,255,.025); }
+.series-strip > div.current { color: #f3e8cf; border-color: rgba(228,178,91,.5); background: rgba(228,178,91,.09); }
+.series-strip > div.complete { color: #85b7aa; }
+.series-strip span { font-size: 10px; font-weight: 700; letter-spacing: .08em; }
+.series-strip strong { color: #e4b25b; font-size: 15px; }
+.series-strip i { color: #53666e; font-style: normal; }
+
 .score-panel {
   position: relative;
   z-index: 2;
@@ -195,12 +203,35 @@ button:focus-visible { outline: 3px solid #f6c969; outline-offset: 3px; }
 .base-first { right: 14px; top: 43px; }
 .home-plate { position: absolute; left: 57px; bottom: 1px; width: 17px; height: 13px; background: #e7dcc1; clip-path: polygon(0 0, 100% 0, 100% 54%, 50% 100%, 0 54%); }
 
-.hand-section, .lower-grid { margin-top: 22px; }
+.hand-section, .buy-section, .lower-grid { margin-top: 22px; }
 .section-heading { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 14px; }
 .section-heading h2 { margin: 0; color: #f5ead4; font-family: var(--font-display), sans-serif; font-size: 25px; font-weight: 400; letter-spacing: .02em; }
 .section-heading > span { color: #758a93; font-size: 11px; }
 .section-heading.compact h2 { font-size: 22px; }
 .card-hand { display: grid; grid-template-columns: repeat(6, minmax(150px, 1fr)); gap: 12px; }
+
+.buy-section { padding: 20px; border: 1px solid rgba(228,178,91,.32); border-radius: 7px; background: rgba(9,17,21,.82); }
+.buy-header { display: flex; align-items: center; gap: 16px; margin-bottom: 17px; }
+.buy-header > div:first-child { margin-right: auto; }
+.buy-header p, .demote-panel p { margin: 0 0 3px; color: #dca451; font-size: 9px; font-weight: 800; letter-spacing: .14em; }
+.buy-header h2 { margin: 0; font-family: var(--font-display), sans-serif; font-size: 28px; font-weight: 400; }
+.budget-chip { min-width: 86px; display: grid; place-items: center; padding: 7px 13px; border: 1px solid rgba(88,194,170,.4); border-radius: 4px; background: rgba(88,194,170,.08); }
+.budget-chip span { color: #8ca29f; font-size: 9px; }.budget-chip strong { color: #72cfb8; font-family: var(--font-display), sans-serif; font-size: 27px; font-weight: 400; line-height: 1; }
+.finish-buy { border: 0; border-radius: 4px; padding: 12px 15px; color: #172128; background: #e3ae56; cursor: pointer; font-size: 11px; font-weight: 800; }
+.finish-buy:hover { background: #f3c56e; }
+.market-lineup { display: grid; grid-template-columns: repeat(6, minmax(145px, 1fr)); gap: 10px; }
+.market-slot { min-width: 0; }
+.market-slot .player-card { height: 315px; }
+.market-slot .player-card:disabled { opacity: .45; filter: saturate(.45); }
+.market-slot > span { display: block; margin-top: 6px; padding: 5px; border-radius: 2px; text-align: center; font-size: 9px; font-weight: 800; }
+.market-slot .can-buy { color: #17372f; background: #66c6af; }.market-slot .cannot-buy { color: #8b969a; background: rgba(255,255,255,.06); }
+.buy-help { margin: 15px 0 0; color: #879ba3; font-size: 11px; }
+.demote-panel { display: flex; align-items: center; gap: 18px; margin-top: 17px; padding: 14px; border: 1px solid rgba(239,113,72,.28); background: rgba(239,113,72,.06); }
+.demote-panel > div:first-child { min-width: 250px; }.demote-panel h3 { margin: 0; font-size: 14px; }
+.demote-cards { flex: 1; display: flex; gap: 7px; overflow-x: auto; }
+.demote-cards button { min-width: 105px; display: grid; gap: 3px; padding: 9px; border: 1px solid rgba(255,255,255,.15); border-radius: 3px; color: #ddd0b3; background: #172229; cursor: pointer; text-align: left; }
+.demote-cards button:hover { border-color: #ef7148; background: #2a2423; }
+.demote-cards b { color: #ef9a61; font-size: 11px; }.demote-cards span, .demote-cards em { font-size: 9px; font-style: normal; }
 
 .player-card {
   --type: #64809d;
@@ -269,6 +300,7 @@ footer { display: flex; justify-content: space-between; padding: 20px 3px 0; col
   .stadium-board { grid-template-columns: 1fr 1.2fr; }
   .player-dugout { display: none; }
   .card-hand { grid-template-columns: repeat(3, 1fr); }
+  .market-lineup { grid-template-columns: repeat(3, 1fr); }
 }
 
 @media (max-width: 760px) {
@@ -281,6 +313,7 @@ footer { display: flex; justify-content: space-between; padding: 20px 3px 0; col
   .restart-button { padding: 8px 10px; font-size: 11px; }
   .rules-strip { margin-inline: -14px; }
   .score-panel { grid-template-columns: 1fr 85px 1fr; min-height: 65px; }
+  .series-strip { gap: 5px; }.series-strip > div { min-width: 0; flex: 1; gap: 7px; padding-inline: 8px; }.series-strip span { font-size: 8px; }
   .score-team { gap: 8px; padding-inline: 10px; }.score-team span { font-size: 15px; }.score-team strong { font-size: 32px; }
   .stadium-board { min-height: 470px; grid-template-columns: 1fr; padding: 56px 12px 18px; }
   .cpu-dugout { display: none; }
@@ -288,6 +321,7 @@ footer { display: flex; justify-content: space-between; padding: 20px 3px 0; col
   .field-score { gap: 7px; }.diamond { width: 112px; transform: scale(.82); }.versus { width: 34px; height: 34px; font-size: 12px; }
   .card-hand { display: flex; overflow-x: auto; padding: 5px 3px 16px; scroll-snap-type: x mandatory; }
   .card-hand .player-card { flex: 0 0 185px; scroll-snap-align: start; }
+  .buy-header { align-items: flex-end; flex-wrap: wrap; }.buy-header > div:first-child { width: 100%; }.market-lineup { display: flex; overflow-x: auto; padding-bottom: 10px; }.market-slot { flex: 0 0 185px; }.demote-panel { display: block; }.demote-cards { margin-top: 10px; }
   .section-heading > span { display: none; }
   .lower-grid { grid-template-columns: 1fr; }
   .deck-counts { grid-template-columns: repeat(2, 1fr); }
