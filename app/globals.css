@@ -240,24 +240,11 @@ button:focus-visible { outline: 3px solid #f6c969; outline-offset: 3px; }
 .playback-call p { margin: 0; color: #b6c5c9; font-size: 12px; line-height: 1.6; }
 .playback-call button { align-self: flex-start; margin-top: 18px; padding: 7px 10px; border: 1px solid rgba(255,255,255,.18); border-radius: 3px; color: #aebdc1; background: rgba(255,255,255,.04); cursor: pointer; font-size: 9px; font-weight: 800; }
 .playback-card-slot { position: relative; z-index: 1; display: grid; place-items: center; }
+.card-owner-label { width: 165px; margin-bottom: 7px; padding: 6px 8px; border-radius: 3px; color: #fff; text-align: center; font-size: 10px; font-weight: 900; letter-spacing: .06em; }
+.card-owner-label.owner-player { background: #287e70; }.card-owner-label.owner-cpu { background: #a54531; }
 .playback-card-slot .player-card { width: 165px; height: 276px; cursor: default; }
 .playback-card-slot.is-focused .player-card { border-color: #f0c475; outline: 3px solid rgba(240,196,117,.3); outline-offset: 4px; }
 .playback-card-slot .card-figure { height: 90px; }.playback-card-slot .ability-box { height: 54px; font-size: 9px; }.playback-card-slot .card-role { top: 45px; }
-.playback-stage.has-runner-motion { grid-template-columns: minmax(210px,.65fr) minmax(270px,.9fr) minmax(490px,1.65fr); }
-.runner-motion-board { position: relative; z-index: 1; align-self: stretch; display: flex; flex-direction: column; justify-content: center; min-width: 0; padding: 12px; border: 1px solid rgba(240,196,117,.32); border-radius: 5px; background: rgba(4,12,15,.55); }
-.runner-motion-heading { display: flex; justify-content: space-between; align-items: center; margin-bottom: 9px; }
-.runner-motion-heading span { color: #f4e6c9; font-size: 11px; font-weight: 900; letter-spacing: .08em; }
-.runner-motion-heading b { padding: 3px 6px; border-radius: 2px; color: #122027; background: #e2b258; font-size: 9px; }
-.runner-motion-list { display: grid; gap: 5px; }
-.runner-motion { --motion-color: var(--runner-average); display: grid; grid-template-columns: 42px 34px minmax(48px,1fr) 34px; align-items: center; gap: 5px; min-height: 28px; padding: 4px 6px; border-left: 3px solid var(--motion-color); background: rgba(255,255,255,.035); }
-.runner-motion.motion-fast { --motion-color: var(--runner-fast); }.runner-motion.motion-average { --motion-color: var(--runner-average); }.runner-motion.motion-slow { --motion-color: var(--runner-slow); }
-.runner-motion em { color: #d7b978; font-size: 8px; font-style: normal; font-weight: 900; }
-.runner-motion span, .runner-motion strong { color: #c8d4d7; font-size: 9px; text-align: center; }
-.runner-motion strong { color: #fff0cf; }
-.runner-motion.is-scoring strong { color: #f6d183; }
-.runner-motion i { position: relative; display: block; height: 2px; background: rgba(255,255,255,.18); }
-.runner-motion i::after { content: "›"; position: absolute; right: -2px; top: -9px; color: #91a2a8; font-size: 15px; font-style: normal; }
-.runner-motion u { position: absolute; left: 0; top: -4px; width: 10px; height: 10px; border: 2px solid #fff0cf; border-radius: 50%; background: var(--motion-color); box-shadow: 0 0 0 2px rgba(0,0,0,.24); text-decoration: none; animation: runner-travel .62s cubic-bezier(.2,.75,.3,1) both; animation-delay: var(--motion-delay); }
 .snapshot-field { position: relative; z-index: 1; display: grid; grid-template-columns: 1fr 40px 1fr; align-items: center; gap: 8px; }
 .snapshot-team { min-width: 0; display: grid; justify-items: center; gap: 5px; padding: 12px 8px; border: 1px solid rgba(255,255,255,.1); border-top: 3px solid #ee7049; border-radius: 5px; background: rgba(4,12,15,.46); }
 .snapshot-player { border-top-color: #55c2aa; }.snapshot-cpu { border-top-color: #ee7049; }
@@ -344,6 +331,22 @@ button:focus-visible { outline: 3px solid #f6c969; outline-offset: 3px; }
 .base-third { left: 9px; top: 45px; }
 .base-first { right: 9px; top: 45px; }
 .home-plate { position: absolute; left: 55px; bottom: 0; width: 18px; height: 14px; background: #e7dcc1; clip-path: polygon(0 0, 100% 0, 100% 54%, 50% 100%, 0 54%); }
+.runner-flight { --flight-color: var(--runner-average); position: absolute; z-index: 4; left: var(--runner-from-x); top: var(--runner-from-y); width: 12px; height: 12px; border: 2px solid #fff0cf; border-radius: 50%; background: var(--flight-color); box-shadow: 0 0 0 2px rgba(0,0,0,.28); animation: runner-direct .68s cubic-bezier(.25,.72,.28,1) both; animation-delay: var(--runner-delay); }
+.runner-flight.motion-fast { --flight-color: var(--runner-fast); }.runner-flight.motion-average { --flight-color: var(--runner-average); }.runner-flight.motion-slow { --flight-color: var(--runner-slow); }
+
+@supports (offset-path: path("M 0 0 L 1 1")) {
+  .runner-flight { left: 0; top: 0; offset-anchor: center; animation-name: runner-on-diamond; }
+  .runner-flight.route-0-1 { offset-path: path("M 64 103 L 108 56"); }
+  .runner-flight.route-0-2 { offset-path: path("M 64 103 L 108 56 L 64 12"); }
+  .runner-flight.route-0-3 { offset-path: path("M 64 103 L 108 56 L 64 12 L 20 56"); }
+  .runner-flight.route-0-score { offset-path: path("M 64 103 L 108 56 L 64 12 L 20 56 L 64 103"); }
+  .runner-flight.route-1-2 { offset-path: path("M 108 56 L 64 12"); }
+  .runner-flight.route-1-3 { offset-path: path("M 108 56 L 64 12 L 20 56"); }
+  .runner-flight.route-1-score { offset-path: path("M 108 56 L 64 12 L 20 56 L 64 103"); }
+  .runner-flight.route-2-3 { offset-path: path("M 64 12 L 20 56"); }
+  .runner-flight.route-2-score { offset-path: path("M 64 12 L 20 56 L 64 103"); }
+  .runner-flight.route-3-score { offset-path: path("M 20 56 L 64 103"); }
+}
 
 .hand-section, .buy-section, .lower-grid { margin-top: 22px; }
 .hand-section { scroll-margin-top: 12px; }
@@ -485,15 +488,17 @@ footer { display: flex; justify-content: space-between; padding: 20px 3px 0; col
 @keyframes card-reveal { from { opacity: .55; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes turn-change { 0% { opacity: 0; transform: translate(-50%, -12px) scale(.97); } 18%,72% { opacity: 1; transform: translate(-50%, 0) scale(1); } 100% { opacity: 0; transform: translate(-50%, -6px) scale(.99); } }
 @keyframes turn-flash { from { transform: translateX(-110%); } to { transform: translateX(110%); } }
-@keyframes runner-travel { from { left: 0; } to { left: calc(100% - 8px); } }
+@keyframes runner-direct { from { left: var(--runner-from-x); top: var(--runner-from-y); } to { left: var(--runner-to-x); top: var(--runner-to-y); } }
+@keyframes runner-on-diamond { from { offset-distance: 0%; } to { offset-distance: 100%; } }
 
 @media (prefers-reduced-motion: reduce) {
-  .runner-motion u { animation: none; left: calc(100% - 8px); }
+  .runner-flight { animation: none; left: var(--runner-to-x); top: var(--runner-to-y); }
+  @supports (offset-path: path("M 0 0 L 1 1")) { .runner-flight { left: 0; top: 0; offset-distance: 100%; } }
 }
 
 @media (max-width: 1120px) {
   .playback-stage { grid-template-columns: minmax(190px,.55fr) 155px minmax(430px,1.5fr); gap: 12px; padding: 16px; }
-  .playback-stage.has-runner-motion { grid-template-columns: minmax(190px,.55fr) minmax(250px,.8fr) minmax(430px,1.5fr); }
+  .card-owner-label { width: 150px; }
   .playback-card-slot .player-card { width: 150px; }
   .stadium-board { grid-template-columns: 1fr 1.2fr; }
   .player-dugout { display: none; }
@@ -517,9 +522,8 @@ footer { display: flex; justify-content: space-between; padding: 20px 3px 0; col
   .event-track { grid-auto-columns: minmax(170px, 78vw); }
   .broadcast-call { align-items: flex-start; flex-wrap: wrap; }.broadcast-call em { width: 100%; }
   .playback-stage { grid-template-columns: 1fr; padding: 15px; }
-  .playback-stage.has-runner-motion { grid-template-columns: 1fr; }
-  .runner-motion-board { width: 100%; }
   .playback-call { text-align: center; }.playback-call button { align-self: center; }.playback-progress { width: 100%; }
+  .card-owner-label { width: 160px; }
   .playback-card-slot .player-card { width: 160px; height: 270px; }
   .snapshot-field { width: 100%; grid-template-columns: 1fr 25px 1fr; }
   .snapshot-team { padding-inline: 4px; }.snapshot-team .diamond { transform: scale(.62); margin-block: -19px; }

@@ -570,7 +570,7 @@ function ResolutionConsole({ game, activeIndex, running }: { game: GameState; ac
             key={`${game.resolutionKey}-${index}-${event.title}`}
             style={{ animationDelay: `${index * 90}ms` } as CSSProperties}
           >
-            <small>{event.actor === "player" ? "YOU" : event.actor === "cpu" ? "CPU" : "RULE"}</small>
+            <small>{event.actor === "player" ? "내 카드" : event.actor === "cpu" ? "상대 카드" : "규칙"}</small>
             <strong>{event.title}</strong>
             <span>{event.detail}</span>
           </article>
@@ -615,22 +615,44 @@ function PlayerCard({ card, selected, disabled, onClick }: { card: Card; selecte
   );
 }
 
-function BaseDiamond({ bases }: { bases: Array<Runner | null> }) {
+const basePoint: Record<0 | 1 | 2 | 3 | "score", { x: string; y: string }> = {
+  0: { x: "58px", y: "97px" },
+  1: { x: "102px", y: "50px" },
+  2: { x: "58px", y: "6px" },
+  3: { x: "14px", y: "50px" },
+  score: { x: "58px", y: "97px" },
+};
+
+function BaseDiamond({ bases, motions = [] }: { bases: Array<Runner | null>; motions?: RunnerMotion[] }) {
   return (
     <div className="diamond" aria-label={`1루 ${bases[0] ? "주자 있음" : "비어 있음"}, 2루 ${bases[1] ? "주자 있음" : "비어 있음"}, 3루 ${bases[2] ? "주자 있음" : "비어 있음"}`}>
       <span className={`base base-second ${bases[1] ? `occupied speed-${bases[1].speed}` : ""}`}>2</span>
       <span className={`base base-third ${bases[2] ? `occupied speed-${bases[2].speed}` : ""}`}>3</span>
       <span className={`base base-first ${bases[0] ? `occupied speed-${bases[0].speed}` : ""}`}>1</span>
       <span className="home-plate" />
+      {motions.map((motion, index) => (
+        <span
+          className={`runner-flight motion-${motion.speed} route-${motion.from}-${motion.to}`}
+          key={`${motion.sequence}-${motion.cardId}-${motion.from}-${motion.to}-${index}`}
+          style={{
+            "--runner-from-x": basePoint[motion.from].x,
+            "--runner-from-y": basePoint[motion.from].y,
+            "--runner-to-x": basePoint[motion.to].x,
+            "--runner-to-y": basePoint[motion.to].y,
+            "--runner-delay": `${index * 100}ms`,
+          } as CSSProperties}
+          aria-label={`${motion.batter ? "타자" : `${motion.from}루 주자`}가 ${motion.to === "score" ? "홈으로 들어와 득점" : `${motion.to}루로 이동`}`}
+        />
+      ))}
     </div>
   );
 }
 
-function SnapshotTeam({ label, side, actor, focused }: { label: string; side: VisualSide; actor: "player" | "cpu"; focused?: boolean }) {
+function SnapshotTeam({ label, side, actor, focused, motions }: { label: string; side: VisualSide; actor: "player" | "cpu"; focused?: boolean; motions?: RunnerMotion[] }) {
   return (
     <div className={`snapshot-team snapshot-${actor} ${focused ? "is-focused" : ""}`}>
       <div className="snapshot-score"><span>{label}</span><strong>{side.score}</strong></div>
-      <BaseDiamond bases={side.bases} />
+      <BaseDiamond bases={side.bases} motions={motions} />
       <div className="runner-readout">
         <small>루상 주자</small>
         <div>
@@ -657,38 +679,6 @@ function SpeedLegend() {
   );
 }
 
-function runnerPlaceLabel(place: RunnerMotion["from"] | RunnerMotion["to"]) {
-  if (place === 0) return "타석";
-  if (place === "score") return "득점";
-  return `${place}루`;
-}
-
-function RunnerMotionBoard({ motions }: { motions: RunnerMotion[] }) {
-  const scored = motions.filter((motion) => motion.to === "score").length;
-  return (
-    <div className="runner-motion-board" aria-label={`주자 이동 ${motions.length}건${scored ? `, ${scored}득점` : ""}`}>
-      <div className="runner-motion-heading">
-        <span>주자 이동</span>
-        <b>{scored ? `+${scored}점` : `${motions.length}명 이동`}</b>
-      </div>
-      <div className="runner-motion-list">
-        {motions.map((motion, index) => (
-          <div
-            className={`runner-motion motion-${motion.speed} ${motion.to === "score" ? "is-scoring" : ""}`}
-            key={`${motion.sequence}-${motion.cardId}-${motion.from}-${motion.to}-${index}`}
-            style={{ "--motion-delay": `${index * 90}ms` } as CSSProperties}
-          >
-            <em>{hitLabel[motion.hit]}</em>
-            <span>{motion.batter ? "타자" : runnerPlaceLabel(motion.from)}</span>
-            <i aria-hidden="true"><u /></i>
-            <strong>{runnerPlaceLabel(motion.to)}</strong>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
 function playbackDuration(event: ResolutionEvent) {
   if (event.runnerMotions?.length) return Math.max(1180, 720 + event.runnerMotions.length * 90);
   return 920;
@@ -696,14 +686,13 @@ function playbackDuration(event: ResolutionEvent) {
 
 function PlaybackStage({ event, index, total, running, onSkip }: { event: ResolutionEvent | undefined; index: number; total: number; running: boolean; onSkip: () => void }) {
   if (!event?.snapshot) return null;
-  const actingLabel = event.actor === "player" ? "YOU" : event.actor === "cpu" ? "CPU" : "RULE";
+  const actingLabel = event.actor === "player" ? "내 카드" : event.actor === "cpu" ? "상대 카드" : "규칙";
   const focusedTeam = event.kind === "settle"
     ? event.actor === "player" ? "cpu" : "player"
     : event.kind === "threat" ? event.actor : null;
   const cardFocused = event.kind === "reveal" || event.kind === "ability" || event.kind === "save";
-  const showRunnerMotion = event.kind === "settle" && Boolean(event.runnerMotions?.length);
   return (
-    <section className={`playback-stage actor-${event.actor} playback-${event.kind} ${showRunnerMotion ? "has-runner-motion" : ""}`} key={`${index}-${event.title}`} aria-label="현재 카드 처리 연출">
+    <section className={`playback-stage actor-${event.actor} playback-${event.kind}`} key={`${index}-${event.title}`} aria-label="현재 카드 처리 연출">
       <div className="playback-call">
         <div className="playback-progress"><span style={{ width: `${((index + 1) / total) * 100}%` }} /></div>
         <small>{actingLabel} · STEP {index + 1}/{total}</small>
@@ -711,15 +700,14 @@ function PlaybackStage({ event, index, total, running, onSkip }: { event: Resolu
         <p>{event.detail}</p>
         {running && <button type="button" onClick={onSkip}>연출 건너뛰기</button>}
       </div>
-      {showRunnerMotion
-        ? <RunnerMotionBoard motions={event.runnerMotions!} />
-        : <div className={`playback-card-slot ${cardFocused ? "is-focused" : ""}`}>
-            {event.card && <PlayerCard card={event.card} disabled />}
-          </div>}
+      <div className={`playback-card-slot ${cardFocused ? "is-focused" : ""}`}>
+        {event.card && <span className={`card-owner-label owner-${event.actor}`}>{event.actor === "player" ? "내가 낸 카드" : "상대가 낸 카드"}</span>}
+        {event.card && <PlayerCard card={event.card} disabled />}
+      </div>
       <div className="snapshot-field">
-        <SnapshotTeam label="CPU · 홈" side={event.snapshot.cpu} actor="cpu" focused={focusedTeam === "cpu"} />
+        <SnapshotTeam label="CPU · 홈" side={event.snapshot.cpu} actor="cpu" focused={focusedTeam === "cpu"} motions={focusedTeam === "cpu" ? event.runnerMotions : undefined} />
         <div className="snapshot-divider"><span>처리</span><i>→</i></div>
-        <SnapshotTeam label="YOU · 원정" side={event.snapshot.player} actor="player" focused={focusedTeam === "player"} />
+        <SnapshotTeam label="YOU · 원정" side={event.snapshot.player} actor="player" focused={focusedTeam === "player"} motions={focusedTeam === "player" ? event.runnerMotions : undefined} />
       </div>
     </section>
   );
