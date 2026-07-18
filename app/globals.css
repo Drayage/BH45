@@ -383,7 +383,9 @@ button:focus-visible { outline: 3px solid #f6c969; outline-offset: 3px; }
 .on-deck-summary span { color: #d5c8aa; font-size: 10px; font-weight: 800; }
 .on-deck-summary em { color: #93a4a9; font-size: 10px; font-style: normal; line-height: 1.4; }
 .hand-card-slot { min-width: 0; display: flex; flex-direction: column; }
-.pinch-hit-action { min-height: 36px; margin-top: 7px; padding: 7px 6px; border: 1px solid rgba(88,194,170,.5); border-radius: 3px; color: #c9f4e8; background: rgba(88,194,170,.12); cursor: pointer; font-size: 9px; font-weight: 900; line-height: 1.25; }
+.pinch-hit-actions { display: grid; gap: 5px; margin-top: 7px; }
+.pinch-hit-action { min-height: 34px; padding: 7px 6px; border: 1px solid rgba(88,194,170,.5); border-radius: 3px; color: #c9f4e8; background: rgba(88,194,170,.12); cursor: pointer; font-size: 9px; font-weight: 900; line-height: 1.25; }
+.pinch-hit-action.is-lineup { border-color: rgba(228,178,91,.42); color: #f0d6a5; background: rgba(228,178,91,.1); }
 .pinch-hit-action:disabled { opacity: .4; cursor: default; }
 
 .player-card {

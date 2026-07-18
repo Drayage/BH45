@@ -792,7 +792,7 @@ export function GamePrototype() {
     });
   }
 
-  function playRound(cardId: string, usePinchHitter = false) {
+  function playRound(cardId: string, pinchSource: "on_deck" | "lineup" | null = null) {
     if (game.phase !== "playing" || playbackRunning) return;
     setGame((current) => {
       const player = cloneSide(current.player);
@@ -801,14 +801,14 @@ export function GamePrototype() {
       if (!selectedCard) return current;
       let playerCard = selectedCard;
       let pinchHitDetail: string | null = null;
-      if (usePinchHitter) {
+      if (pinchSource) {
         if (!selectedCard.pinchHitter) return current;
-        const fromOnDeck = Boolean(player.onDeck);
-        const replacement = player.onDeck ?? player.deck.shift();
+        const fromOnDeck = pinchSource === "on_deck";
+        const replacement = fromOnDeck ? player.onDeck : player.deck.shift();
         if (!replacement) return current;
         player.hand = player.hand.filter((card) => card.id !== selectedCard.id);
         player.discard.push(selectedCard);
-        player.onDeck = null;
+        if (fromOnDeck) player.onDeck = null;
         player.hand.push(replacement);
         playerCard = replacement;
         pinchHitDetail = `${selectedCard.id}를 더그아웃으로 보내고 ${fromOnDeck ? "온덱" : "라인업 맨 위"} ${replacement.id}를 투입했습니다.`;
@@ -1295,14 +1295,24 @@ export function GamePrototype() {
                   onClick={() => playRound(card.id)}
                 />
                 {card.pinchHitter && (
-                  <button
-                    type="button"
-                    className="pinch-hit-action"
-                    disabled={playbackRunning || (!game.player.onDeck && game.player.deck.length === 0)}
-                    onClick={() => playRound(card.id, true)}
-                  >
-                    PH 사용 · {game.player.onDeck ? `온덱 ${game.player.onDeck.id}` : "라인업 맨 위"} 투입
-                  </button>
+                  <div className="pinch-hit-actions">
+                    <button
+                      type="button"
+                      className="pinch-hit-action"
+                      disabled={playbackRunning || !game.player.onDeck}
+                      onClick={() => playRound(card.id, "on_deck")}
+                    >
+                      PH · {game.player.onDeck ? `온덱 ${game.player.onDeck.id}` : "온덱 없음"}
+                    </button>
+                    <button
+                      type="button"
+                      className="pinch-hit-action is-lineup"
+                      disabled={playbackRunning || game.player.deck.length === 0}
+                      onClick={() => playRound(card.id, "lineup")}
+                    >
+                      PH · 라인업 맨 위 비공개 카드
+                    </button>
+                  </div>
                 )}
               </div>
             ))}
