@@ -100,6 +100,7 @@ type ResolutionEvent = {
   snapshot?: ResolutionSnapshot;
   runnerMotions?: RunnerMotion[];
   abilityTriggered?: boolean;
+  focusTeam?: "player" | "cpu";
 };
 
 type MarketActivity = {
@@ -1411,11 +1412,11 @@ function abilityIsActive(card: Card, acting: Side, opposing: Side, extraInnings 
   return false;
 }
 
-function PlayerCard({ card, selected, disabled, abilityActive, onClick }: { card: Card; selected?: boolean; disabled?: boolean; abilityActive?: boolean; onClick?: () => void }) {
+function PlayerCard({ card, selected, disabled, abilityActive, hitsIgnored, onClick }: { card: Card; selected?: boolean; disabled?: boolean; abilityActive?: boolean; hitsIgnored?: boolean; onClick?: () => void }) {
   return (
     <button
       type="button"
-      className={`player-card type-${card.type} card-speed-${card.speed} ${selected ? "is-selected" : ""} ${abilityActive ? "has-live-ability" : ""}`}
+      className={`player-card type-${card.type} card-speed-${card.speed} ${selected ? "is-selected" : ""} ${abilityActive ? "has-live-ability" : ""} ${hitsIgnored ? "hits-ignored" : ""}`}
       onClick={onClick}
       disabled={disabled}
       aria-pressed={selected}
@@ -1437,8 +1438,9 @@ function PlayerCard({ card, selected, disabled, abilityActive, onClick }: { card
         {abilityActive && <b>발동 가능</b>}
         {card.abilityTextKo ?? "기본 능력 없음"}
       </span>
-      <span className="hit-row">
+      <span className="hit-row" aria-label={hitsIgnored ? "비지터 세이브에서는 카드의 안타를 무시합니다" : undefined}>
         {card.hits.length ? card.hits.map((hit, index) => <em key={`${hit}-${index}`}>{hitLabel[hit]}</em>) : <em className="no-hit">—</em>}
+        {hitsIgnored && <strong className="ignored-hit-note">안타 무시</strong>}
       </span>
       <span className="card-footer">
         <span>속도 {speedLabel[card.speed]}</span>
@@ -1544,10 +1546,11 @@ function playbackDuration(event: ResolutionEvent) {
 function PlaybackStage({ event, index, total, running, onSkip }: { event: ResolutionEvent | undefined; index: number; total: number; running: boolean; onSkip: () => void }) {
   if (!event?.snapshot) return null;
   const actingLabel = event.actor === "player" ? "내 카드" : event.actor === "cpu" ? "상대 카드" : "규칙";
-  const focusedTeam = event.kind === "settle"
+  const focusedTeam = event.focusTeam ?? (event.kind === "settle"
     ? event.actor === "player" ? "cpu" : "player"
-    : event.kind === "threat" || (event.kind === "ability" && event.runnerMotions?.length) ? event.actor : null;
+    : event.kind === "threat" || (event.kind === "ability" && event.runnerMotions?.length) ? event.actor : null);
   const cardFocused = event.kind === "reveal" || event.kind === "ability" || event.kind === "save";
+  const visitorSaveReveal = event.kind === "save";
   return (
     <section className={`playback-stage actor-${event.actor} playback-${event.kind}`} key={`${index}-${event.title}`} aria-label="현재 카드 처리 연출">
       <div className="playback-call">
@@ -1558,8 +1561,8 @@ function PlaybackStage({ event, index, total, running, onSkip }: { event: Resolu
         {running && <button type="button" onClick={onSkip}>연출 건너뛰기</button>}
       </div>
       <div className={`playback-card-slot ${cardFocused ? "is-focused" : ""}`}>
-        {event.card && <span className={`card-owner-label owner-${event.actor}`}>{event.actor === "player" ? "내가 낸 카드" : "상대가 낸 카드"}</span>}
-        {event.card && <PlayerCard card={event.card} disabled abilityActive={(event.kind === "ability" || event.kind === "save") && event.abilityTriggered} />}
+        {event.card && <span className={`card-owner-label owner-${event.actor}`}>{visitorSaveReveal ? "비지터 세이브 공개 · 안타 무시" : event.actor === "player" ? "내가 낸 카드" : "상대가 낸 카드"}</span>}
+        {event.card && <PlayerCard card={event.card} disabled hitsIgnored={visitorSaveReveal} abilityActive={(event.kind === "ability" || event.kind === "save") && event.abilityTriggered} />}
       </div>
       <div className="snapshot-field">
         <SnapshotTeam label="CPU · 홈" side={event.snapshot.cpu} actor="cpu" focused={focusedTeam === "cpu"} motions={focusedTeam === "cpu" ? event.runnerMotions : undefined} />
@@ -2090,8 +2093,8 @@ export function GamePrototype() {
           actor: "player",
           title: "비지터 세이브",
           detail: saveEvents.length
-            ? `${sourceLabel} ${saveCard.id} 공개 · ${saveEvents.join(" ")}`
-            : `${sourceLabel} ${saveCard.id} 공개 · 적용 가능한 수비 즉시 능력이 없습니다.`,
+            ? `${sourceLabel} ${saveCard.id} 공개 · ${saveEvents.join(" ")} 카드에 적힌 안타는 발동하지 않습니다.`
+            : `${sourceLabel} ${saveCard.id} 공개 · 적용 가능한 수비 즉시 능력이 없습니다. 카드에 적힌 안타는 발동하지 않습니다.`,
           card: saveCard,
           snapshot: snapshotSides(player, cpu),
           abilityTriggered: saveEvents.length > 0,
@@ -2111,13 +2114,14 @@ export function GamePrototype() {
       const finalSettlement = settlePending(cpu, cpu.played.at(-1));
       resolution.push({
         kind: "settle",
-        actor: "cpu",
-        title: "홈팀 마지막 위협 확정",
+        actor: "system",
+        title: "CPU가 남긴 위협 안타 확정",
         detail: finalSettlement.hits.length
-          ? `${finalSettlement.hits.map((hit) => hitLabel[hit]).join(" + ")}를 베이스에 반영했습니다.`
-          : "모든 위협을 막았습니다.",
+          ? `${finalSettlement.hits.map((hit) => hitLabel[hit]).join(" + ")}를 베이스에 반영합니다. 방금 공개한 세이브 카드의 안타가 아니라 CPU가 직전에 만든 위협입니다.`
+          : "CPU가 남긴 위협을 모두 막았습니다. 세이브 카드의 안타는 사용하지 않습니다.",
         snapshot: snapshotSides(player, cpu),
         runnerMotions: finalSettlement.runnerMotions,
+        focusTeam: "cpu",
       });
       if (finalSettlement.hits.length) log.push(`경기 종료 · 상대 마지막 ${finalSettlement.hits.map((hit) => hitLabel[hit]).join(", ")} 확정`);
       log.push(`FINAL ${teamCode[player.team]} ${player.score} : ${cpu.score} ${teamCode[cpu.team]}`);

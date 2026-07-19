@@ -100,4 +100,7 @@ test("coaches and ball parks ship as complete expansion sets", async () => {
   assert.match(prototype, /game\.phase === "choosing_ballpark"/);
   assert.match(prototype, /function applyCoachBeforePlay/);
   assert.match(prototype, /function applyBallpark/);
+  assert.match(prototype, /hitsIgnored=\{visitorSaveReveal\}/);
+  assert.match(prototype, /CPU가 남긴 위협 안타 확정/);
+  assert.match(prototype, /focusTeam: "cpu"/);
 });

@@ -519,6 +519,10 @@ button:focus-visible { outline: 3px solid #f6c969; outline-offset: 3px; }
 .player-card.card-speed-average .hit-row em:not(.no-hit) { border-color: #245f9a; color: #fff; background: var(--runner-average); }
 .player-card.card-speed-slow .hit-row em:not(.no-hit) { border-color: #2d7645; color: #fff; background: var(--runner-slow); }
 .hit-row em.no-hit { opacity: .5; }
+.player-card.hits-ignored .hit-row { position: relative; background: #8f897b; }
+.player-card.hits-ignored .hit-row em { opacity: .2; filter: grayscale(1); text-decoration: line-through; }
+.ignored-hit-note { margin-left: auto; padding: 3px 6px; border: 1px solid #772b24; border-radius: 2px; color: #fff4e4; background: #a54335; font-size: 8px; font-weight: 900; letter-spacing: .04em; white-space: nowrap; }
+.playback-save .playback-card-slot.is-focused .player-card { border-color: #de6f54; outline-color: rgba(222,111,84,.3); }
 .card-footer { min-height: 27px; display: flex; align-items: center; justify-content: space-between; padding: 4px 8px; color: #594425; background: #c4a56b; font-size: 9px; font-weight: 700; }
 .card-footer b { padding: 2px 4px; color: #fff; background: #39444a; }
 
