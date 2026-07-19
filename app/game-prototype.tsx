@@ -3,12 +3,14 @@
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
 import cardData from "@/data/base-cards.json";
 import expansionCardData from "@/data/expansion-cards.json";
+import coachData from "@/data/coaches.json";
+import ballparkData from "@/data/ballparks.json";
 
 type PlayerType = "natural" | "cyborg" | "robot";
 type Speed = "slow" | "average" | "fast";
 type Hit = "single" | "double" | "triple" | "home_run";
 type ThreatHit = Hit | "walk";
-type ExpansionSet = "rally_cap" | "magna_glove" | "robot_hitters" | "cyborg_pitchers" | "errors" | "big_fly" | "home_cookin" | "double_trouble";
+type ExpansionSet = "coaches" | "rally_cap" | "magna_glove" | "robot_hitters" | "cyborg_pitchers" | "errors" | "big_fly" | "home_cookin" | "double_trouble" | "ballparks";
 type AiDifficulty = "normal" | "hard" | "very_hard";
 type Screen = "title" | "game";
 
@@ -29,12 +31,36 @@ type Card = {
   hits: Hit[];
 };
 
+type CoachEffect = "brawl" | "double_steal" | "triple_play" | "bullpen_robot" | "scout" | "fan_favorite" | "robot_fast" | "natural_fast" | "bullpen_natural" | "steal_signs" | "bench" | "robot_glove" | "natural_single" | "robot_single" | "cyborg_single";
+type Coach = {
+  id: string;
+  name: string;
+  nameKo: string;
+  effect: CoachEffect;
+  timing: "immediate" | "buy" | "game";
+  abilityText: string;
+  abilityTextKo: string;
+};
+type BallparkEffect = "double_to_homer" | "low_mound" | "homer_to_double" | "single_glove_proof" | "high_mound" | "robot_changeup" | "real_grass" | "sold_out";
+type Ballpark = {
+  id: string;
+  name: string;
+  nameKo: string;
+  effect: BallparkEffect;
+  abilityText: string;
+  abilityTextKo: string;
+};
+
 type Runner = { cardId: string; speed: Speed };
 type PendingPlayBonus = { hits: ThreatHit[]; requiredType?: PlayerType; label: string };
 type AbilityContext = {
   extraInnings: boolean;
   actingIsHome: boolean;
   freeAgentDeck: Card[];
+  actingCoach: Coach | null;
+  ballpark: Ballpark | null;
+  disableDefense?: boolean;
+  magnaGloveBoost?: boolean;
 };
 type RunnerMotion = {
   sequence: number;
@@ -57,6 +83,7 @@ type Side = {
   bases: Array<Runner | null>;
   pending: ThreatHit[];
   pendingSpeed: Speed | null;
+  protectedSingles: number;
   pendingHitAndRun: boolean;
   nextBonus: PendingPlayBonus | null;
   remainingBonuses: ThreatHit[];
@@ -103,12 +130,14 @@ type GameState = {
   player: Side;
   cpu: Side;
   round: number;
-  phase: "setting_on_deck" | "playing" | "visitor_save" | "buying" | "series_finished";
+  phase: "choosing_ballpark" | "coach_draft" | "choosing_coach" | "setting_on_deck" | "playing" | "visitor_save" | "buying" | "series_finished";
   stage: "exhibition" | "world_series";
   gameNumber: number;
   exhibitionWins: { player: number; cpu: number };
   worldSeriesWins: { player: number; cpu: number };
   market: Card[];
+  scoutMarket: Card[];
+  cpuScoutMarket: Card[];
   freeAgentDeck: Card[];
   playerBudget: number;
   cpuBudget: number;
@@ -125,10 +154,24 @@ type GameState = {
   enabledExpansions: ExpansionSet[];
   aiDifficulty: AiDifficulty;
   cpuStartingFa: Card[];
+  playerBallparkOptions: Ballpark[];
+  playerBallpark: Ballpark | null;
+  cpuBallpark: Ballpark | null;
+  playerCoaches: Coach[];
+  cpuCoaches: Coach[];
+  playerCoachDraftPool: Coach[];
+  cpuCoachDraftPool: Coach[];
+  coachDraftRound: number;
+  playerActiveCoach: Coach | null;
+  cpuActiveCoach: Coach | null;
+  playerCoachUsed: boolean;
+  cpuCoachUsed: boolean;
 };
 
 const baseCards = cardData as Card[];
 const expansionCards = expansionCardData as Card[];
+const coaches = coachData as Coach[];
+const ballparks = ballparkData as Ballpark[];
 const cards = [...baseCards, ...expansionCards];
 const teams = ["San Francisco", "Los Angeles", "Boston", "New York"];
 const teamLabel: Record<string, string> = {
@@ -153,6 +196,7 @@ const hitLabel: Record<ThreatHit, string> = {
   walk: "볼넷",
 };
 const expansionLabel: Record<ExpansionSet, string> = {
+  coaches: "Coaches",
   rally_cap: "Rally Cap",
   magna_glove: "Naturals & Magna Glove",
   robot_hitters: "Robot Hitters",
@@ -161,6 +205,7 @@ const expansionLabel: Record<ExpansionSet, string> = {
   big_fly: "Big Fly",
   home_cookin: "Home Cookin'",
   double_trouble: "Double Trouble",
+  ballparks: "Ball Parks",
 };
 const aiDifficultyConfig: Record<AiDifficulty, { label: string; count: number; detail: string }> = {
   normal: { label: "보통", count: 0, detail: "CPU도 스타터 15장으로 시작" },
@@ -168,7 +213,7 @@ const aiDifficultyConfig: Record<AiDifficulty, { label: string; count: number; d
   very_hard: { label: "매우 어려움", count: 5, detail: "CPU 스타터 5장을 무작위 FA로 교체" },
 };
 const expansionCatalog = [
-  { code: "CO", name: "Coaches", count: 15, ready: false },
+  { id: "coaches" as ExpansionSet, code: "CO", name: "Coaches", count: 15, ready: true, kind: "규칙 확장" },
   { id: "rally_cap" as ExpansionSet, code: "RC", name: "Rally Cap", count: 15, ready: true },
   { id: "magna_glove" as ExpansionSet, code: "NM", name: "Naturals & Magna Glove", count: 10, ready: true },
   { id: "robot_hitters" as ExpansionSet, code: "RH", name: "Robot Hitters", count: 10, ready: true },
@@ -177,6 +222,7 @@ const expansionCatalog = [
   { id: "big_fly" as ExpansionSet, code: "BF", name: "Big Fly", count: 15, ready: true },
   { id: "home_cookin" as ExpansionSet, code: "HC", name: "Home Cookin'", count: 15, ready: true },
   { id: "double_trouble" as ExpansionSet, code: "DT", name: "Double Trouble", count: 15, ready: true },
+  { id: "ballparks" as ExpansionSet, code: "BP", name: "Ball Parks", count: 10, ready: true, kind: "홈구장 확장" },
 ] as const;
 
 function shuffle<T>(input: T[]) {
@@ -186,6 +232,44 @@ function shuffle<T>(input: T[]) {
     [result[i], result[j]] = [result[j], result[i]];
   }
   return result;
+}
+
+function ballparkValue(ballpark: Ballpark) {
+  return ballpark.effect === "sold_out" ? 3 : ["high_mound", "real_grass", "double_to_homer"].includes(ballpark.effect) ? 4 : 2;
+}
+
+function coachValue(coach: Coach) {
+  const values: Partial<Record<CoachEffect, number>> = {
+    scout: 7, fan_favorite: 7, triple_play: 7, brawl: 6, robot_glove: 6,
+    natural_single: 6, robot_single: 6, cyborg_single: 6, bullpen_robot: 5,
+    bullpen_natural: 5, bench: 5, double_steal: 4, natural_fast: 4, robot_fast: 4, steal_signs: 2,
+  };
+  return values[coach.effect] ?? 1;
+}
+
+function coachMakesFast(coach: Coach | null, type: PlayerType) {
+  return coach?.effect === "natural_fast" && type === "natural" || coach?.effect === "robot_fast" && type === "robot";
+}
+
+function coachAddsSingle(coach: Coach | null, type: PlayerType) {
+  return coach?.effect === `${type}_single`;
+}
+
+function coachGrantsPinchHit(coach: Coach | null) {
+  return coach?.effect === "bench";
+}
+
+function withCoachBonuses(card: Card, coach: Coach | null) {
+  return {
+    ...card,
+    speed: coachMakesFast(coach, card.type) ? "fast" as const : card.speed,
+    pinchHitter: card.pinchHitter || coachGrantsPinchHit(coach),
+    hits: coachAddsSingle(coach, card.type) ? [...card.hits, "single" as Hit] : [...card.hits],
+  };
+}
+
+function currentBallpark(game: Pick<GameState, "cpuBallpark" | "enabledExpansions">) {
+  return game.enabledExpansions.includes("ballparks") ? game.cpuBallpark : null;
 }
 
 function makeSide(team: string): Side {
@@ -209,6 +293,7 @@ function makeSide(team: string): Side {
     bases: [null, null, null],
     pending: [],
     pendingSpeed: null,
+    protectedSingles: 0,
     pendingHitAndRun: false,
     nextBonus: null,
     remainingBonuses: [],
@@ -237,16 +322,21 @@ function makeGame(playerTeam: string, enabledExpansions: ExpansionSet[] = [], ai
     card.category === "free_agent" && (card.set === "base" || enabledExpansions.includes(card.set as ExpansionSet)),
   ));
   const cpuBoost = boostCpuRoster(makeSide(cpuTeam), freeAgents, aiDifficultyConfig[aiDifficulty].count);
+  const parkDeck = shuffle(ballparks);
+  const playerBallparkOptions = enabledExpansions.includes("ballparks") ? parkDeck.slice(0, 2) : [];
+  const cpuBallparkOptions = enabledExpansions.includes("ballparks") ? parkDeck.slice(2, 4) : [];
   return {
     player: makeSide(playerTeam),
     cpu: cpuBoost.side,
     round: 1,
-    phase: "setting_on_deck",
+    phase: enabledExpansions.includes("ballparks") ? "choosing_ballpark" : "setting_on_deck",
     stage: "exhibition",
     gameNumber: 1,
     exhibitionWins: { player: 0, cpu: 0 },
     worldSeriesWins: { player: 0, cpu: 0 },
     market: cpuBoost.freeAgents.slice(0, 6),
+    scoutMarket: [],
+    cpuScoutMarket: [],
     freeAgentDeck: cpuBoost.freeAgents.slice(6),
     playerBudget: 0,
     cpuBudget: 0,
@@ -271,6 +361,18 @@ function makeGame(playerTeam: string, enabledExpansions: ExpansionSet[] = [], ai
     enabledExpansions: [...enabledExpansions],
     aiDifficulty,
     cpuStartingFa: cpuBoost.recruits,
+    playerBallparkOptions,
+    playerBallpark: null,
+    cpuBallpark: cpuBallparkOptions.sort((a, b) => ballparkValue(b) - ballparkValue(a))[0] ?? null,
+    playerCoaches: [],
+    cpuCoaches: [],
+    playerCoachDraftPool: [],
+    cpuCoachDraftPool: [],
+    coachDraftRound: 0,
+    playerActiveCoach: null,
+    cpuActiveCoach: null,
+    playerCoachUsed: false,
+    cpuCoachUsed: false,
   };
 }
 
@@ -286,6 +388,7 @@ function cloneSide(side: Side): Side {
     played: [...side.played],
     bases: [...side.bases],
     pending: [...side.pending],
+    protectedSingles: side.protectedSingles,
     nextBonus: side.nextBonus ? { ...side.nextBonus, hits: [...side.nextBonus.hits] } : null,
     remainingBonuses: [...side.remainingBonuses],
   };
@@ -670,9 +773,16 @@ function applyAbility(
 function applyDefensiveAbility(card: Card, acting: Side, opposing: Side, opposingLast: Card | undefined, context: AbilityContext) {
   const text = card.abilityText?.toLowerCase() ?? "";
   const events: string[] = [];
-  if (!text) return events;
+  const coachGlove = context.actingCoach?.effect === "robot_glove" && card.type === "robot";
+  if (context.disableDefense) {
+    events.push("낮은 마운드 체크로 이 사이보그의 위협 안타 대상 수비 능력이 봉쇄됐습니다.");
+    return events;
+  }
+  if (!text && !coachGlove) return events;
 
-  const glove = text.split(";").map((clause) => clause.trim()).find((clause) => clause.startsWith("glove:") || clause.startsWith("magna glove:")) ?? "";
+  const glove = coachGlove
+    ? "glove: coach defense"
+    : text.split(";").map((clause) => clause.trim()).find((clause) => clause.startsWith("glove:") || clause.startsWith("magna glove:")) ?? "";
   if (glove && opposing.pending.length && (!glove.includes("extra innings") || context.extraInnings)) {
     let checkPassed = true;
     if (glove.includes("robot check")) {
@@ -688,15 +798,23 @@ function applyDefensiveAbility(card: Card, acting: Side, opposing: Side, opposin
       events.push(`에러 대응 내추럴 체크 ${check?.id ?? "실패"} · ${success ? "성공" : "실패"}`);
     }
     if (checkPassed) {
-      let count = glove.includes("magna glove") ? 2 : 1;
+      let count = glove.includes("magna glove") || context.magnaGloveBoost ? 2 : 1;
       if (glove.includes("1st glove") && opposing.pending[0] === "home_run") count = 2;
-      const affected = Math.min(count, opposing.pending.length);
+      const targetIndexes = opposing.pending
+        .map((hit, index) => ({ hit, index }))
+        .filter(({ hit }) => !(hit === "single" && opposing.protectedSingles > 0))
+        .slice(0, count)
+        .map(({ index }) => index);
+      const affected = targetIndexes.length;
+      if (!affected && opposing.pending.length) {
+        events.push("구장 효과로 보호된 1루타는 글러브로 취소할 수 없습니다.");
+      }
       if (opposingLast?.abilityText?.toLowerCase().includes("contact")) {
-        opposing.pending = opposing.pending.map((hit, index) => index < affected ? "single" : hit);
+        opposing.pending = opposing.pending.map((hit, index) => targetIndexes.includes(index) ? "single" : hit);
         events.push(`컨택으로 글러브 대상 위협 ${affected}개가 1루타로 바뀌었습니다.`);
       } else {
-        opposing.pending.splice(0, affected);
-        events.push(`${glove.includes("magna glove") ? "마그나 글러브" : "글러브"}로 위협 안타 ${affected}개를 지웠습니다.`);
+        opposing.pending = opposing.pending.filter((_, index) => !targetIndexes.includes(index));
+        if (affected) events.push(`${glove.includes("magna glove") || context.magnaGloveBoost ? "마그나 글러브" : "글러브"}로 위협 안타 ${affected}개를 지웠습니다.`);
       }
     }
   }
@@ -765,11 +883,109 @@ function applyDefensiveAbility(card: Card, acting: Side, opposing: Side, opposin
   return events;
 }
 
+function applyBallpark(card: Card, acting: Side, opposing: Side, context: AbilityContext) {
+  const park = context.ballpark;
+  const events: string[] = [];
+  let disableDefense = false;
+  let magnaGloveBoost = false;
+  let protectSingles = false;
+  let hits = [...card.hits];
+  if (!park) return { card, events, disableDefense, magnaGloveBoost, protectSingles };
+
+  const check = (type: PlayerType) => {
+    const checked = drawCheck(context);
+    const success = checked?.type === type;
+    events.push(`${park.nameKo} 구장 체크 · ${checked?.id ?? "FA 덱 없음"} ${typeLabel[checked?.type ?? type]} · ${success ? "성공" : "실패"}`);
+    return success;
+  };
+  const matchingCheck = () => check(card.type);
+
+  if (park.effect === "double_to_homer" && hits.includes("double") && matchingCheck()) {
+    hits = hits.map((hit) => hit === "double" ? "home_run" : hit);
+    events.push("구장의 짧은 담장과 바람으로 위협 2루타가 홈런이 됐습니다.");
+  }
+  if (park.effect === "homer_to_double" && hits.includes("home_run") && matchingCheck()) {
+    hits = hits.map((hit) => hit === "home_run" ? "double" : hit);
+    events.push("넓은 외야 때문에 위협 홈런이 2루타로 줄었습니다.");
+  }
+  if (park.effect === "single_glove_proof" && hits.includes("single") && matchingCheck()) {
+    protectSingles = true;
+    events.push("이 카드의 위협 1루타는 글러브에 면역입니다.");
+  }
+  if (park.effect === "low_mound" && card.type === "cyborg" && opposing.pending.length && check("cyborg")) {
+    disableDefense = true;
+  }
+  if (park.effect === "high_mound" && card.type === "cyborg" && opposing.pending.length && check("cyborg")) {
+    opposing.pending = [];
+    opposing.protectedSingles = 0;
+    events.push("높은 마운드가 사이보그를 강화해 상대 위협 안타를 모두 취소했습니다.");
+  }
+  if (park.effect === "robot_changeup" && card.type === "robot" && hits.length && check("robot")) {
+    hits = reduceHits(hits) as Hit[];
+    events.push("로봇 체인지업으로 이 카드의 모든 위협 안타가 1베이스 줄었습니다.");
+  }
+  const hasGlove = hasGloveAction(card) || context.actingCoach?.effect === "robot_glove" && card.type === "robot";
+  if (park.effect === "real_grass" && hasGlove && opposing.pending.length && check("natural")) {
+    magnaGloveBoost = true;
+    events.push("천연 잔디가 글러브를 마그나 글러브로 강화했습니다.");
+  }
+  return { card: { ...card, hits }, events, disableDefense, magnaGloveBoost, protectSingles };
+}
+
+function advanceLeadRunnerTwo(side: Side) {
+  const base = side.bases.findLastIndex(Boolean);
+  if (base < 0) return [] as RunnerMotion[];
+  const runner = side.bases[base]!;
+  side.bases[base] = null;
+  const destination = base + 2;
+  if (destination >= 3) {
+    side.score += 1;
+    return [{ ...runner, sequence: 0, hit: "ability" as const, from: (base + 1) as 1 | 2 | 3, to: "score" as const }];
+  }
+  side.bases[destination] = runner;
+  return [{ ...runner, sequence: 0, hit: "ability" as const, from: (base + 1) as 1, to: (destination + 1) as 3 }];
+}
+
+function applyCoachBeforePlay(coach: Coach | null, acting: Side, opposing: Side, context: AbilityContext) {
+  const events: string[] = [];
+  const runnerMotions: RunnerMotion[] = [];
+  if (!coach || coach.timing !== "immediate") return { events, runnerMotions, used: false };
+  const opposingLast = opposing.played.at(-1);
+
+  if (coach.effect === "brawl" && opposingLast) {
+    const replacement = context.freeAgentDeck.shift();
+    if (replacement) {
+      opposing.played[opposing.played.length - 1] = replacement;
+      opposing.removed.push(opposingLast);
+      opposing.revenue += replacement.revenue - opposingLast.revenue;
+      opposing.pending = [...replacement.hits];
+      opposing.pendingSpeed = replacement.speed;
+      opposing.protectedSingles = 0;
+      events.push(`난투로 ${opposingLast.id}를 제거하고 FA ${replacement.id}로 교체했습니다. 새 카드의 즉시 능력은 무시합니다.`);
+    }
+  } else if (coach.effect === "double_steal") {
+    runnerMotions.push(...advanceLeadRunnerTwo(acting));
+    if (runnerMotions.length) events.push("더블 스틸로 가장 앞선 주자가 2베이스 진루했습니다.");
+  } else if (coach.effect === "triple_play") {
+    const removed = removeRunner(opposing, 3, true);
+    if (removed) events.push(`삼중살로 상대 주자 ${removed}명을 제거했습니다.`);
+  } else if ((coach.effect === "bullpen_robot" && opposingLast?.type === "robot") || (coach.effect === "bullpen_natural" && opposingLast?.type === "natural")) {
+    const cancelled = opposing.pending.length;
+    opposing.pending = [];
+    opposing.protectedSingles = 0;
+    events.push(`불펜 코치가 상대 ${typeLabel[opposingLast.type]}의 위협 안타 ${cancelled}개를 취소했습니다.`);
+  } else if (coach.effect === "steal_signs") {
+    events.push(`사인 훔치기 · 상대 손패 ${opposing.hand.map((card) => `${card.id} ${typeLabel[card.type]}`).join(" · ") || "없음"}`);
+  }
+  return { events, runnerMotions, used: events.length > 0 };
+}
+
 function settlePending(side: Side, source: Card | undefined) {
   const hits = [...side.pending];
   const hitAndRun = side.pendingHitAndRun;
   side.pending = [];
   side.pendingSpeed = null;
+  side.protectedSingles = 0;
   side.pendingHitAndRun = false;
   const runnerMotions = hits.flatMap((hit, sequence) =>
     advanceHit(side, hit, source, hitAndRun).map((motion) => ({ ...motion, hit, sequence })),
@@ -798,6 +1014,13 @@ function playOne(card: Card, acting: Side, opposing: Side, context: AbilityConte
     }
   }
 
+  const rosterCard = card;
+  card = withCoachBonuses(card, context.actingCoach);
+  const park = applyBallpark(card, acting, opposing, context);
+  card = park.card;
+  context.disableDefense = park.disableDefense;
+  context.magnaGloveBoost = park.magnaGloveBoost;
+
   const opposingLast = opposing.played.at(-1);
   const revealFrame: MoveFrame = { acting: visualSide(acting), opposing: visualSide(opposing) };
   acting.pendingSpeed = card.speed;
@@ -817,6 +1040,7 @@ function playOne(card: Card, acting: Side, opposing: Side, context: AbilityConte
     }
   }
   const ability = applyAbility(card, acting, opposing, opposingLast, acting.played.length, context);
+  ability.events.unshift(...park.events);
   if (replacementDetail) ability.events.unshift(replacementDetail);
   ability.events.unshift(...bonusEvents);
   const abilityFrame: MoveFrame = { acting: visualSide(acting), opposing: visualSide(opposing) };
@@ -824,9 +1048,10 @@ function playOne(card: Card, acting: Side, opposing: Side, context: AbilityConte
   const settled = settlement.hits;
   const settleFrame: MoveFrame = { acting: visualSide(acting), opposing: visualSide(opposing) };
   acting.hand = acting.hand.filter((item) => item.id !== sourceCard.id && item.id !== card.id);
-  acting.played.push(card);
+  acting.played.push(rosterCard);
   acting.revenue += card.revenue;
   acting.pending.push(...card.hits);
+  if (park.protectSingles) acting.protectedSingles = card.hits.filter((hit) => hit === "single").length;
   if (card.hits.length && card.abilityText?.toLowerCase().includes("hit & run")) acting.pendingHitAndRun = true;
   if (acting.pending.length) acting.pendingSpeed = card.speed;
   const threatFrame: MoveFrame = { acting: visualSide(acting), opposing: visualSide(opposing) };
@@ -872,6 +1097,7 @@ function drawNextLineup(side: Side) {
   side.bases = [null, null, null];
   side.pending = [];
   side.pendingSpeed = null;
+  side.protectedSingles = 0;
   side.pendingHitAndRun = false;
   side.nextBonus = null;
   side.remainingBonuses = [];
@@ -936,6 +1162,32 @@ function runCpuBuy(cpuInput: Side, marketInput: Card[], freeAgentDeckInput: Card
   return { cpu, market, freeAgentDeck, budget, purchases, activities };
 }
 
+function runCpuBuyWithScout(cpuInput: Side, marketInput: Card[], freeAgentDeckInput: Card[], budgetInput: number, scoutInput: Card[]) {
+  const cpu = cloneSide(cpuInput);
+  let budget = budgetInput;
+  const activities: MarketActivity[] = [];
+  const purchases: string[] = [];
+  const affordableScout = scoutInput
+    .filter((card) => (card.cost ?? 999) <= budget)
+    .sort((a, b) => cardValue(b) - cardValue(a))[0];
+  if (affordableScout && cpu.played.length) {
+    const demote = [...cpu.played].sort((a, b) => cardValue(a) - cardValue(b))[0];
+    budget -= affordableScout.cost ?? 0;
+    cpu.deck.unshift(affordableScout);
+    cpu.played = cpu.played.filter((card) => card.id !== demote.id);
+    cpu.minors.push(demote);
+    activities.push({ buyer: "cpu", recruit: affordableScout, demote, replacement: null });
+    purchases.push(`${affordableScout.id} 스카우트 영입 / ${demote.id} 마이너`);
+  }
+  const returned = shuffle(scoutInput.filter((card) => card.id !== affordableScout?.id));
+  const normal = runCpuBuy(cpu, marketInput, [...returned, ...freeAgentDeckInput], budget);
+  return {
+    ...normal,
+    purchases: [...purchases, ...normal.purchases],
+    activities: [...activities, ...normal.activities],
+  };
+}
+
 function miniGameWinner(player: Side, cpu: Side): "player" | "cpu" | "tie" {
   if (player.score > cpu.score) return "player";
   if (player.score < cpu.score) return "cpu";
@@ -996,13 +1248,23 @@ function finishMiniGame(
 
   let market = [...current.market];
   let freeAgentDeck = [...current.freeAgentDeck];
+  if (currentBallpark(current)?.effect === "sold_out") {
+    const winningSide = winner === "player" ? player : cpu;
+    winningSide.revenue += 2;
+    log.push(`${currentBallpark(current)?.nameKo} 매진 보너스 · ${winner === "player" ? "내 팀" : "CPU"} 수익 +2`);
+  }
+  const scoutMarket = current.playerActiveCoach?.effect === "scout" ? freeAgentDeck.splice(0, 3) : [];
+  const cpuScoutMarket = current.cpuActiveCoach?.effect === "scout" ? freeAgentDeck.splice(0, 3) : [];
   let nextCpu = cpu;
-  let cpuBudget = cpu.revenue;
+  const playerCoachBonus = current.playerActiveCoach?.effect === "fan_favorite" ? 5 : 0;
+  const cpuCoachBonus = current.cpuActiveCoach?.effect === "fan_favorite" ? 5 : 0;
+  let cpuBudget = cpu.revenue + cpuCoachBonus;
   let marketActivity: MarketActivity[] = [];
-  const firstBuyer = player.revenue < cpu.revenue ? "player" : "cpu";
+  const playerBudget = player.revenue + playerCoachBonus;
+  const firstBuyer = playerBudget < cpuBudget ? "player" : "cpu";
 
   if (firstBuyer === "cpu") {
-    const cpuBuy = runCpuBuy(cpu, market, freeAgentDeck, cpuBudget);
+    const cpuBuy = runCpuBuyWithScout(cpu, market, freeAgentDeck, cpuBudget, cpuScoutMarket);
     nextCpu = cpuBuy.cpu;
     market = cpuBuy.market;
     freeAgentDeck = cpuBuy.freeAgentDeck;
@@ -1010,7 +1272,10 @@ function finishMiniGame(
     marketActivity = cpuBuy.activities;
     cpuBuy.purchases.forEach((purchase) => log.push(`CPU 구매 · ${purchase}`));
   }
-  log.push(`구매 라운드 · 내 예산 ${player.revenue}, CPU 예산 ${cpu.revenue}`);
+  if (scoutMarket.length) log.push(`코치 스카우트 · 추가 FA ${scoutMarket.map((card) => card.id).join(", ")} 공개`);
+  if (playerCoachBonus) log.push("팬 페이버릿 · 내 영입 예산 +5");
+  if (cpuCoachBonus) log.push("CPU 팬 페이버릿 · 영입 예산 +5");
+  log.push(`구매 라운드 · 내 예산 ${playerBudget}, CPU 예산 ${cpu.revenue + cpuCoachBonus}`);
 
   return {
     ...current,
@@ -1020,8 +1285,10 @@ function finishMiniGame(
     exhibitionWins,
     worldSeriesWins,
     market,
+    scoutMarket,
+    cpuScoutMarket: firstBuyer === "cpu" ? [] : cpuScoutMarket,
     freeAgentDeck,
-    playerBudget: player.revenue,
+    playerBudget,
     cpuBudget,
     purchaseTurn: "player",
     cpuBought: firstBuyer === "cpu",
@@ -1037,7 +1304,7 @@ function finishMiniGame(
         kind: "buy",
         actor: "system",
         title: "구매 라운드",
-        detail: `내 예산 ${player.revenue} · CPU 예산 ${cpu.revenue}${marketActivity.length ? ` · CPU ${marketActivity.length}명 영입 완료` : ""}`,
+        detail: `내 예산 ${playerBudget} · CPU 예산 ${cpu.revenue + cpuCoachBonus}${scoutMarket.length ? " · 스카우트 FA 3장 추가" : ""}${marketActivity.length ? ` · CPU ${marketActivity.length}명 영입 완료` : ""}`,
       },
     ],
     log,
@@ -1181,6 +1448,30 @@ function PlayerCard({ card, selected, disabled, abilityActive, onClick }: { card
   );
 }
 
+function CoachCard({ coach, active, onClick }: { coach: Coach; active?: boolean; onClick?: () => void }) {
+  return (
+    <button type="button" className={`coach-card timing-${coach.timing} ${active ? "is-active" : ""}`} onClick={onClick} disabled={!onClick}>
+      <span className="aux-card-code">{coach.id}</span>
+      <small>{coach.timing === "immediate" ? "다음 카드 전 즉시" : coach.timing === "buy" ? "경기 후 영입 단계" : "이번 미니게임 지속"}</small>
+      <strong>{coach.nameKo}</strong>
+      <em>{coach.name}</em>
+      <p>{coach.abilityTextKo}</p>
+    </button>
+  );
+}
+
+function BallparkCard({ ballpark, active, onClick }: { ballpark: Ballpark; active?: boolean; onClick?: () => void }) {
+  return (
+    <button type="button" className={`ballpark-card ${active ? "is-active" : ""}`} onClick={onClick} disabled={!onClick}>
+      <span className="aux-card-code">{ballpark.id}</span>
+      <small>HOME BALLPARK · 양 팀 적용</small>
+      <strong>{ballpark.nameKo}</strong>
+      <em>{ballpark.name}</em>
+      <p>{ballpark.abilityTextKo}</p>
+    </button>
+  );
+}
+
 const basePoint: Record<0 | 1 | 2 | 3 | "score", { x: string; y: string }> = {
   0: { x: "58px", y: "97px" },
   1: { x: "102px", y: "50px" },
@@ -1288,7 +1579,7 @@ function ScorePanel({ game }: { game: GameState }) {
       </div>
       <div className="inning-cell">
         <small>{game.stage === "exhibition" ? `EXHIBITION ${game.gameNumber}/3` : `WORLD SERIES ${game.gameNumber}`}</small>
-        <b>{game.phase === "playing" ? `${game.round} / 6` : game.phase === "setting_on_deck" ? "ON DECK" : game.phase === "visitor_save" ? "SAVE" : game.phase === "buying" ? "BUY" : "FINAL"}</b>
+        <b>{game.phase === "playing" ? `${game.round} / 6` : game.phase === "choosing_ballpark" ? "BALLPARK" : game.phase === "coach_draft" ? "COACH DRAFT" : game.phase === "choosing_coach" ? "COACH" : game.phase === "setting_on_deck" ? "ON DECK" : game.phase === "visitor_save" ? "SAVE" : game.phase === "buying" ? "BUY" : "FINAL"}</b>
       </div>
       <div className="score-team home-score">
         <strong key={`player-score-${game.player.score}`}>{game.player.score}</strong>
@@ -1355,7 +1646,7 @@ function TitleScreen({
             {expansionCatalog.map((set) => set.ready ? (
               <label className={`set-option ${enabledExpansions.includes(set.id) ? "is-enabled" : ""}`} key={set.code}>
                 <input type="checkbox" checked={enabledExpansions.includes(set.id)} onChange={(event) => onExpansionChange(set.id, event.target.checked)} />
-                <span className="set-code">{set.code}</span><div><b>{set.name}</b><small>FA {set.count}장 · 능력 판정·연출 구현</small></div><em>{enabledExpansions.includes(set.id) ? "사용" : "제외"}</em>
+                <span className="set-code">{set.code}</span><div><b>{set.name}</b><small>{set.id === "coaches" ? "코치 15장 · 4라운드 드래프트·지속/즉시 능력" : set.id === "ballparks" ? "구장 10장 · 2장 중 1장 선택·FA 체크" : `FA ${set.count}장 · 능력 판정·연출 구현`}</small></div><em>{enabledExpansions.includes(set.id) ? "사용" : "제외"}</em>
               </label>
             ) : (
               <article className="set-option is-upcoming" key={set.code}>
@@ -1557,6 +1848,70 @@ export function GamePrototype() {
     setEnabledExpansions((current) => enabled ? [...new Set([...current, set])] : current.filter((item) => item !== set));
   }
 
+  function selectBallpark(ballparkId: string) {
+    setGame((current) => {
+      if (current.phase !== "choosing_ballpark") return current;
+      const selected = current.playerBallparkOptions.find((park) => park.id === ballparkId);
+      if (!selected) return current;
+      return {
+        ...current,
+        playerBallpark: selected,
+        phase: "setting_on_deck",
+        resolutionKey: current.resolutionKey + 1,
+        lastResolution: [{ kind: "next", actor: "system", title: "홈구장 등록", detail: `${selected.nameKo}를 내 홈구장으로 선택했습니다. 솔로 규칙에서는 CPU 홈구장이 경기 효과를 결정합니다.` }],
+        log: [...current.log, `홈구장 선택 · ${selected.id} ${selected.nameKo}`, `CPU 홈구장 · ${current.cpuBallpark?.id} ${current.cpuBallpark?.nameKo}`],
+      };
+    });
+  }
+
+  function chooseCoachDraft(coachId: string) {
+    setGame((current) => {
+      if (current.phase !== "coach_draft") return current;
+      const selected = current.playerCoachDraftPool.find((coach) => coach.id === coachId);
+      if (!selected) return current;
+      const cpuSelected = [...current.cpuCoachDraftPool].sort((a, b) => coachValue(b) - coachValue(a))[0];
+      if (!cpuSelected) return current;
+      const playerRemaining = current.playerCoachDraftPool.filter((coach) => coach.id !== selected.id);
+      const cpuRemaining = current.cpuCoachDraftPool.filter((coach) => coach.id !== cpuSelected.id);
+      const playerCoaches = [...current.playerCoaches, selected];
+      const cpuCoaches = [...current.cpuCoaches, cpuSelected];
+      const complete = current.coachDraftRound >= 3;
+      return {
+        ...current,
+        playerCoaches,
+        cpuCoaches,
+        playerCoachDraftPool: complete ? [] : cpuRemaining,
+        cpuCoachDraftPool: complete ? [] : playerRemaining,
+        coachDraftRound: current.coachDraftRound + 1,
+        phase: complete ? "choosing_coach" : "coach_draft",
+        resolutionKey: current.resolutionKey + 1,
+        lastResolution: [{ kind: "next", actor: "system", title: complete ? "코치 드래프트 완료" : `코치 드래프트 ${current.coachDraftRound + 1}/4`, detail: `내 선택 ${selected.nameKo} · CPU 선택 ${cpuSelected.nameKo}${complete ? " · 첫 월드 시리즈 경기에 쓸 코치를 정합니다." : " · 남은 카드를 서로 넘겼습니다."}` }],
+        log: [...current.log, `코치 드래프트 · 나 ${selected.id}, CPU ${cpuSelected.id}`],
+      };
+    });
+  }
+
+  function chooseGameCoach(coachId: string | null) {
+    setGame((current) => {
+      if (current.phase !== "choosing_coach") return current;
+      const playerCoach = coachId ? current.playerCoaches.find((coach) => coach.id === coachId) ?? null : null;
+      const cpuCoach = [...current.cpuCoaches].sort((a, b) => coachValue(b) - coachValue(a))[0] ?? null;
+      return {
+        ...current,
+        playerCoaches: playerCoach ? current.playerCoaches.filter((coach) => coach.id !== playerCoach.id) : current.playerCoaches,
+        cpuCoaches: cpuCoach ? current.cpuCoaches.filter((coach) => coach.id !== cpuCoach.id) : current.cpuCoaches,
+        playerActiveCoach: playerCoach,
+        cpuActiveCoach: cpuCoach,
+        playerCoachUsed: false,
+        cpuCoachUsed: false,
+        phase: "setting_on_deck",
+        resolutionKey: current.resolutionKey + 1,
+        lastResolution: [{ kind: "next", actor: "system", title: "이번 경기 코치 공개", detail: `CPU ${cpuCoach?.nameKo ?? "사용 안 함"} · 나 ${playerCoach?.nameKo ?? "사용 안 함"}` }],
+        log: [...current.log, `코치 공개 · CPU ${cpuCoach?.id ?? "없음"}, 나 ${playerCoach?.id ?? "없음"}`],
+      };
+    });
+  }
+
   function returnToTitle() {
     setScreen("title");
     if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
@@ -1598,7 +1953,7 @@ export function GamePrototype() {
       let playerCard = selectedCard;
       let pinchHitDetail: string | null = null;
       if (pinchSource) {
-        if (!selectedCard.pinchHitter) return current;
+        if (!selectedCard.pinchHitter && !coachGrantsPinchHit(current.playerActiveCoach)) return current;
         const fromOnDeck = pinchSource === "on_deck";
         const replacement = fromOnDeck ? player.onDeck : player.deck.shift();
         if (!replacement) return current;
@@ -1611,17 +1966,34 @@ export function GamePrototype() {
       }
 
       const freeAgentDeck = [...current.freeAgentDeck];
-      const playerMove = playOne(playerCard, player, cpu, {
+      const park = currentBallpark(current);
+      const playerContext: AbilityContext = {
         extraInnings: current.round > 6,
         actingIsHome: false,
         freeAgentDeck,
-      });
+        actingCoach: current.playerActiveCoach,
+        ballpark: park,
+      };
+      const playerCoachAction = current.playerCoachUsed
+        ? { events: [] as string[], runnerMotions: [] as RunnerMotion[], used: false }
+        : applyCoachBeforePlay(current.playerActiveCoach, player, cpu, playerContext);
+      const playerMove = playOne(playerCard, player, cpu, playerContext);
+      if (playerCoachAction.events.length) playerMove.events.unshift(`코치 ${current.playerActiveCoach?.nameKo} · ${playerCoachAction.events.join(" ")}`);
+      playerMove.abilityMotions.unshift(...playerCoachAction.runnerMotions);
       const cpuCard = chooseCpuCard(cpu, player);
-      const cpuMove = playOne(cpuCard, cpu, player, {
+      const cpuContext: AbilityContext = {
         extraInnings: current.round > 6,
         actingIsHome: true,
         freeAgentDeck,
-      });
+        actingCoach: current.cpuActiveCoach,
+        ballpark: park,
+      };
+      const cpuCoachAction = current.cpuCoachUsed
+        ? { events: [] as string[], runnerMotions: [] as RunnerMotion[], used: false }
+        : applyCoachBeforePlay(current.cpuActiveCoach, cpu, player, cpuContext);
+      const cpuMove = playOne(cpuCard, cpu, player, cpuContext);
+      if (cpuCoachAction.events.length) cpuMove.events.unshift(`CPU 코치 ${current.cpuActiveCoach?.nameKo} · ${cpuCoachAction.events.join(" ")}`);
+      cpuMove.abilityMotions.unshift(...cpuCoachAction.runnerMotions);
       const nextRound = current.round + 1;
       const finished = player.hand.length === 0;
       const resolution = [
@@ -1654,6 +2026,8 @@ export function GamePrototype() {
           resolutionKey: current.resolutionKey + 1,
           lastResolution: resolution,
           log: [...log, "홈팀 마지막 위협 대기 · 비지터 세이브 선택"],
+          playerCoachUsed: current.playerCoachUsed || playerCoachAction.used,
+          cpuCoachUsed: current.cpuCoachUsed || cpuCoachAction.used,
         };
       }
 
@@ -1668,6 +2042,8 @@ export function GamePrototype() {
         resolutionKey: current.resolutionKey + 1,
         lastResolution: resolution,
         log,
+        playerCoachUsed: current.playerCoachUsed || playerCoachAction.used,
+        cpuCoachUsed: current.cpuCoachUsed || cpuCoachAction.used,
       };
     });
   }
@@ -1705,6 +2081,8 @@ export function GamePrototype() {
           extraInnings: current.round > 6,
           actingIsHome: false,
           freeAgentDeck,
+          actingCoach: current.playerActiveCoach,
+          ballpark: currentBallpark(current),
         });
         player.discard.push(saveCard);
         resolution.push({
@@ -1751,7 +2129,7 @@ export function GamePrototype() {
     if (playbackRunning) return;
     setGame((current) => {
       if (current.phase !== "buying" || current.purchaseTurn !== "player") return current;
-      const card = current.market.find((item) => item.id === cardId);
+      const card = [...current.market, ...current.scoutMarket].find((item) => item.id === cardId);
       if (!card || (card.cost ?? 999) > current.playerBudget || current.player.played.length === 0) return current;
       return { ...current, pendingPurchaseId: current.pendingPurchaseId === cardId ? null : cardId };
     });
@@ -1761,19 +2139,23 @@ export function GamePrototype() {
     if (playbackRunning) return;
     setGame((current) => {
       if (current.phase !== "buying" || !current.pendingPurchaseId) return current;
-      const recruit = current.market.find((card) => card.id === current.pendingPurchaseId);
+      const recruit = [...current.market, ...current.scoutMarket].find((card) => card.id === current.pendingPurchaseId);
       const demote = current.player.played.find((card) => card.id === cardId);
       if (!recruit || !demote || (recruit.cost ?? 999) > current.playerBudget) return current;
       const player = cloneSide(current.player);
       player.deck.unshift(recruit);
       player.played = player.played.filter((card) => card.id !== demote.id);
       player.minors.push(demote);
-      const replenished = replenishMarket(current.market, current.freeAgentDeck, recruit.id);
+      const fromScout = current.scoutMarket.some((card) => card.id === recruit.id);
+      const replenished = fromScout
+        ? { market: current.market, freeAgentDeck: current.freeAgentDeck, replacement: null }
+        : replenishMarket(current.market, current.freeAgentDeck, recruit.id);
       const activity: MarketActivity = { buyer: "player", recruit, demote, replacement: replenished.replacement };
       return {
         ...current,
         player,
         market: replenished.market,
+        scoutMarket: current.scoutMarket.filter((card) => card.id !== recruit.id),
         freeAgentDeck: replenished.freeAgentDeck,
         playerBudget: current.playerBudget - (recruit.cost ?? 0),
         pendingPurchaseId: null,
@@ -1796,7 +2178,8 @@ export function GamePrototype() {
       if (current.phase !== "buying") return current;
 
       if (!current.cpuBought) {
-        const cpuBuy = runCpuBuy(current.cpu, current.market, current.freeAgentDeck, current.cpuBudget);
+        const returnedScout = shuffle(current.scoutMarket);
+        const cpuBuy = runCpuBuyWithScout(current.cpu, current.market, [...returnedScout, ...current.freeAgentDeck], current.cpuBudget, current.cpuScoutMarket);
         const log = [...current.log];
         cpuBuy.purchases.forEach((purchase) => log.push(`CPU 구매 · ${purchase}`));
         if (!cpuBuy.purchases.length) log.push("CPU 구매 · 영입 가능한 선수가 없어 패스");
@@ -1804,6 +2187,8 @@ export function GamePrototype() {
           ...current,
           cpu: cpuBuy.cpu,
           market: cpuBuy.market,
+          scoutMarket: [],
+          cpuScoutMarket: [],
           freeAgentDeck: cpuBuy.freeAgentDeck,
           cpuBudget: cpuBuy.budget,
           purchaseTurn: null,
@@ -1832,6 +2217,10 @@ export function GamePrototype() {
       const enterWorldSeries = current.stage === "exhibition" && current.gameNumber === 3;
       const stage = enterWorldSeries ? "world_series" : current.stage;
       const gameNumber = enterWorldSeries ? 1 : current.gameNumber + 1;
+      const beginCoachDraft = enterWorldSeries && current.enabledExpansions.includes("coaches");
+      const chooseCoach = !beginCoachDraft && stage === "world_series" && current.enabledExpansions.includes("coaches") && (current.playerCoaches.length > 0 || current.cpuCoaches.length > 0);
+      const coachDeck = beginCoachDraft ? shuffle(coaches) : [];
+      const nextFreeAgentDeck = shuffle([...current.scoutMarket, ...current.freeAgentDeck]);
       if (enterWorldSeries) log.push("3경기 미니 시즌 종료 · 7전 4선승 월드 시리즈 시작");
       else log.push(`${stage === "exhibition" ? "미니 시즌" : "월드 시리즈"} ${gameNumber}차전 시작`);
 
@@ -1842,8 +2231,11 @@ export function GamePrototype() {
         stage,
         gameNumber,
         round: 1,
-        phase: "setting_on_deck",
+        phase: beginCoachDraft ? "coach_draft" : chooseCoach ? "choosing_coach" : "setting_on_deck",
         playerBudget: 0,
+        scoutMarket: [],
+        cpuScoutMarket: [],
+        freeAgentDeck: nextFreeAgentDeck,
         cpuBudget: current.cpuBudget,
         purchaseTurn: null,
         cpuBought: false,
@@ -1851,9 +2243,16 @@ export function GamePrototype() {
         marketActivity: [],
         newMarketIds: [],
         selectedId: null,
+        playerCoachDraftPool: beginCoachDraft ? coachDeck.slice(0, 4) : current.playerCoachDraftPool,
+        cpuCoachDraftPool: beginCoachDraft ? coachDeck.slice(4, 8) : current.cpuCoachDraftPool,
+        coachDraftRound: beginCoachDraft ? 0 : current.coachDraftRound,
+        playerActiveCoach: null,
+        cpuActiveCoach: null,
+        playerCoachUsed: false,
+        cpuCoachUsed: false,
         resolutionKey: current.resolutionKey + 1,
         lastResolution: [
-          { kind: "next", actor: "system", title: enterWorldSeries ? "월드 시리즈 개막" : "다음 경기 준비", detail: `${gameNumber}차전 · 새 6장 라인업에서 온덱 카드를 준비합니다.` },
+          { kind: "next", actor: "system", title: beginCoachDraft ? "코치 드래프트" : chooseCoach ? "경기 코치 선택" : enterWorldSeries ? "월드 시리즈 개막" : "다음 경기 준비", detail: beginCoachDraft ? "4장 중 1장을 고르고 남은 카드를 CPU와 교환해 총 4명을 뽑습니다." : chooseCoach ? `${gameNumber}차전에 사용할 코치 한 명을 공개합니다.` : `${gameNumber}차전 · 새 6장 라인업에서 온덱 카드를 준비합니다.` },
         ],
         log,
       };
@@ -1862,7 +2261,7 @@ export function GamePrototype() {
 
   const playbackTotal = game.lastResolution.filter((event) => Boolean(event.snapshot)).length;
   const playbackStep = Math.max(0, game.lastResolution.slice(0, playbackIndex + 1).filter((event) => Boolean(event.snapshot)).length - 1);
-  const pendingRecruit = game.market.find((card) => card.id === game.pendingPurchaseId) ?? null;
+  const pendingRecruit = [...game.market, ...game.scoutMarket].find((card) => card.id === game.pendingPurchaseId) ?? null;
 
   if (screen === "title") {
     return (
@@ -1926,6 +2325,30 @@ export function GamePrototype() {
         <div><small>CARD SETS</small><b>{game.enabledExpansions.length ? `BASE + ${game.enabledExpansions.map((set) => expansionLabel[set]).join(" + ")}` : "BASE ONLY"}</b></div>
         <span>{game.cpuStartingFa.length ? `CPU 시작 보강 · ${game.cpuStartingFa.map((card) => card.id).join(" · ")}` : "CPU 추가 FA 없음 · 시즌 설정은 타이틀에서 변경"}</span>
       </section>
+
+      {(game.enabledExpansions.includes("ballparks") || game.enabledExpansions.includes("coaches")) && (
+        <section className="aux-status-strip" aria-label="코치와 홈구장 상태">
+          {game.enabledExpansions.includes("ballparks") && (
+            <div className="aux-status-item park-status">
+              <small>ACTIVE HOME BALLPARK · CPU 홈</small>
+              <strong>{currentBallpark(game)?.nameKo ?? "선택 대기"}</strong>
+              <span>{currentBallpark(game)?.abilityTextKo ?? "구장을 선택하면 효과가 표시됩니다."}</span>
+            </div>
+          )}
+          {game.enabledExpansions.includes("coaches") && (
+            <>
+              <div className={`aux-status-item coach-status ${game.cpuActiveCoach ? "is-live" : ""}`}>
+                <small>CPU COACH</small><strong>{game.cpuActiveCoach?.nameKo ?? (game.stage === "world_series" ? "사용 안 함" : "월드 시리즈 전 드래프트")}</strong>
+                <span>{game.cpuActiveCoach?.abilityTextKo ?? `보유 ${game.cpuCoaches.length}명`}</span>
+              </div>
+              <div className={`aux-status-item coach-status player-coach ${game.playerActiveCoach ? "is-live" : ""}`}>
+                <small>MY COACH</small><strong>{game.playerActiveCoach?.nameKo ?? (game.stage === "world_series" ? "사용 안 함" : "월드 시리즈 전 드래프트")}</strong>
+                <span>{game.playerActiveCoach?.abilityTextKo ?? `보유 ${game.playerCoaches.length}명`}</span>
+              </div>
+            </>
+          )}
+        </section>
+      )}
 
       <section className="series-strip" aria-label="시리즈 진행 상황">
         <div className={game.stage === "exhibition" ? "current" : "complete"}>
@@ -2003,7 +2426,32 @@ export function GamePrototype() {
         </div>
       </section>
 
-      {game.phase === "visitor_save" ? (
+      {game.phase === "choosing_ballpark" ? (
+        <section className="aux-choice-panel ballpark-choice-panel">
+          <div className="aux-choice-heading"><div><p>BALL PARKS · EXPANSION #10</p><h2>두 구장 중 내 홈구장을 선택하세요</h2></div><span>각 팀은 2장 중 1장을 고릅니다. 홈구장 효과는 홈 필드를 가진 경기에서 양 팀 모두에게 적용됩니다.</span></div>
+          <div className="aux-card-grid ballpark-grid">
+            {game.playerBallparkOptions.map((ballpark) => <BallparkCard key={ballpark.id} ballpark={ballpark} onClick={() => selectBallpark(ballpark.id)} />)}
+          </div>
+          <p className="aux-rule-note">CPU도 비공개 후보 2장 중 하나를 골랐습니다. 현재 솔로 진행 규칙상 CPU가 홈팀이므로 CPU 홈구장이 활성 구장으로 표시됩니다.</p>
+        </section>
+      ) : game.phase === "coach_draft" ? (
+        <section className="aux-choice-panel coach-draft-panel">
+          <div className="aux-choice-heading"><div><p>COACH DRAFT · ROUND {game.coachDraftRound + 1}/4</p><h2>한 명을 영입하고 나머지는 CPU에게 넘기세요</h2></div><span>선택할 때마다 CPU도 한 명을 고르고, 남은 카드 묶음을 서로 교환합니다. 완료하면 양 팀이 코치 4명씩 보유합니다.</span></div>
+          <div className="aux-card-grid coach-grid">
+            {game.playerCoachDraftPool.map((coach) => <CoachCard key={coach.id} coach={coach} onClick={() => chooseCoachDraft(coach.id)} />)}
+          </div>
+          <div className="draft-roster"><span>내가 뽑은 코치</span>{game.playerCoaches.length ? game.playerCoaches.map((coach) => <b key={coach.id}>{coach.id} · {coach.nameKo}</b>) : <em>아직 없음</em>}</div>
+        </section>
+      ) : game.phase === "choosing_coach" ? (
+        <section className="aux-choice-panel coach-select-panel">
+          <div className="aux-choice-heading"><div><p>PRE-GAME · COACH DECLARATION</p><h2>{game.gameNumber}차전에 사용할 코치를 공개하세요</h2></div><span>CPU 홈팀은 이미 코치를 정했습니다. 선택한 코치는 이번 미니게임과 이어지는 영입 단계에만 적용되고 소모됩니다.</span></div>
+          <div className="cpu-coach-reveal"><small>CPU 공개 예정</small><strong>{[...game.cpuCoaches].sort((a, b) => coachValue(b) - coachValue(a))[0]?.nameKo ?? "사용 안 함"}</strong></div>
+          <div className="aux-card-grid coach-grid">
+            {game.playerCoaches.map((coach) => <CoachCard key={coach.id} coach={coach} onClick={() => chooseGameCoach(coach.id)} />)}
+          </div>
+          <button type="button" className="skip-coach" onClick={() => chooseGameCoach(null)}>이번 경기에는 코치 사용 안 함</button>
+        </section>
+      ) : game.phase === "visitor_save" ? (
         <section ref={visitorSaveAnchorRef} className="visitor-save-panel">
           <div className="visitor-save-heading">
             <div>
@@ -2060,12 +2508,15 @@ export function GamePrototype() {
               </div>
             ) : game.cpuBought ? <strong className="cpu-pass">AI는 이번 라운드에 구매하지 않았습니다.</strong> : null}
           </div>
+          {game.scoutMarket.length > 0 && <div className="scout-banner"><b>CO-125 스카우트 발동</b><span>추가 공개 FA입니다. 사지 않은 카드는 내 구매가 끝나면 FA 덱으로 돌아갑니다.</span></div>}
           <div className="market-lineup">
-            {game.market.map((card) => {
+            {[...game.market, ...game.scoutMarket].map((card) => {
               const affordable = (card.cost ?? 999) <= game.playerBudget;
+              const scouted = game.scoutMarket.some((item) => item.id === card.id);
               return (
-                <div className={`market-slot ${game.newMarketIds.includes(card.id) ? "is-new-arrival" : ""}`} key={card.id}>
+                <div className={`market-slot ${game.newMarketIds.includes(card.id) ? "is-new-arrival" : ""} ${scouted ? "is-scouted" : ""}`} key={card.id}>
                   {game.newMarketIds.includes(card.id) && <b className="new-arrival-badge">NEW · 새 입고</b>}
+                  {scouted && <b className="scout-card-badge">SCOUT · 추가 후보</b>}
                   <PlayerCard
                     card={card}
                     selected={game.pendingPurchaseId === card.id}
@@ -2152,7 +2603,7 @@ export function GamePrototype() {
                   abilityActive={abilityIsActive(card, game.player, game.cpu, game.round > 6, false)}
                   onClick={() => playRound(card.id)}
                 />
-                {card.pinchHitter && (
+                {(card.pinchHitter || coachGrantsPinchHit(game.playerActiveCoach)) && (
                   <div className="pinch-hit-actions">
                     <button
                       type="button"

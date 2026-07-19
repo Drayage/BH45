@@ -553,6 +553,44 @@ footer { display: flex; justify-content: space-between; padding: 20px 3px 0; col
   @supports (offset-path: path("M 0 0 L 1 1")) { .runner-flight { left: 0; top: 0; offset-distance: 100%; } }
 }
 
+/* Coaches & Ball Parks */
+.aux-status-strip { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; margin-top:10px; }
+.aux-status-item { min-height:78px; display:grid; gap:4px; align-content:center; padding:12px 14px; border:1px solid rgba(255,255,255,.1); border-radius:6px; background:rgba(8,24,27,.82); }
+.aux-status-item small { color:#738991; font-size:7px; font-weight:900; letter-spacing:.13em; }
+.aux-status-item strong { color:#e8d6ad; font-size:13px; }
+.aux-status-item span { color:#8ca0a5; font-size:8px; line-height:1.45; }
+.aux-status-item.park-status { border-color:rgba(213,162,79,.38); background:linear-gradient(135deg,rgba(84,105,54,.2),rgba(8,24,27,.9)); }
+.aux-status-item.coach-status.is-live { border-color:rgba(88,194,170,.48); }
+.aux-status-item.player-coach { border-color:rgba(88,194,170,.22); }
+.aux-choice-panel { margin-top:22px; padding:22px; border:1px solid rgba(229,177,88,.32); border-radius:8px; background:linear-gradient(150deg,rgba(13,34,36,.98),rgba(7,18,21,.98)); box-shadow:0 20px 45px rgba(0,0,0,.24); }
+.aux-choice-heading { display:flex; justify-content:space-between; gap:24px; align-items:flex-end; margin-bottom:18px; }
+.aux-choice-heading p { color:#d5a24f; font-size:8px; font-weight:900; letter-spacing:.18em; }
+.aux-choice-heading h2 { margin-top:5px; color:#f0e5c9; font-family:var(--font-display),sans-serif; font-size:28px; }
+.aux-choice-heading > span { max-width:520px; color:#8ba0a5; font-size:10px; line-height:1.6; }
+.aux-card-grid { display:grid; gap:12px; }
+.ballpark-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+.coach-grid { grid-template-columns:repeat(4,minmax(0,1fr)); }
+.coach-card,.ballpark-card { min-height:230px; display:flex; flex-direction:column; align-items:flex-start; padding:15px; border:1px solid rgba(255,255,255,.13); border-radius:7px; color:#d5dedf; background:linear-gradient(160deg,#162b2f,#0b191c 70%); text-align:left; cursor:pointer; transition:transform .18s ease,border-color .18s ease; }
+.ballpark-card { min-height:255px; border-color:rgba(213,162,79,.42); background:linear-gradient(160deg,#405b35,#172b24 55%,#101d1b); }
+.coach-card:not(:disabled):hover,.ballpark-card:not(:disabled):hover { transform:translateY(-5px); border-color:#e9be70; }
+.coach-card:disabled,.ballpark-card:disabled { opacity:1; cursor:default; }
+.aux-card-code { align-self:flex-end; padding:4px 7px; border-radius:3px; color:#102024; background:#d5a24f; font-size:8px; font-weight:900; }
+.coach-card small,.ballpark-card small { margin-top:20px; color:#70c8b3; font-size:7px; font-weight:900; letter-spacing:.12em; }
+.coach-card strong,.ballpark-card strong { margin-top:8px; color:#f4e7c8; font-family:var(--font-display),sans-serif; font-size:21px; line-height:1.05; }
+.coach-card em,.ballpark-card em { margin-top:4px; color:#71878c; font-size:8px; font-style:normal; }
+.coach-card p,.ballpark-card p { margin-top:auto; padding-top:18px; color:#aebfc1; font-size:10px; line-height:1.6; }
+.coach-card.timing-immediate { border-top:4px solid #c85c4f; }.coach-card.timing-buy { border-top:4px solid #d5a24f; }.coach-card.timing-game { border-top:4px solid #58c2aa; }
+.aux-rule-note { margin-top:14px; color:#71858d; font-size:9px; line-height:1.55; }
+.draft-roster { display:flex; flex-wrap:wrap; gap:6px; margin-top:14px; align-items:center; }
+.draft-roster span { margin-right:5px; color:#778b91; font-size:8px; font-weight:900; }.draft-roster b { padding:6px 8px; border:1px solid rgba(88,194,170,.28); border-radius:4px; color:#a8d8cc; font-size:8px; }.draft-roster em { color:#71858d; font-size:8px; font-style:normal; }
+.cpu-coach-reveal { display:flex; gap:12px; align-items:center; margin:-4px 0 14px; padding:10px 12px; border-left:3px solid #c85c4f; background:rgba(200,92,79,.08); }.cpu-coach-reveal small { color:#9c7772; font-size:8px; }.cpu-coach-reveal strong { color:#e1b3ac; font-size:12px; }
+.skip-coach { margin-top:14px; padding:11px 14px; border:1px solid rgba(255,255,255,.16); border-radius:4px; color:#a8b5b8; background:transparent; cursor:pointer; font-size:9px; font-weight:900; }
+.scout-banner { display:flex; gap:12px; align-items:center; margin:12px 0 0; padding:10px 12px; border:1px solid rgba(229,177,88,.34); border-radius:5px; background:rgba(229,177,88,.08); }.scout-banner b { color:#edc77f; font-size:9px; }.scout-banner span { color:#9caaac; font-size:8px; }
+.market-slot.is-scouted { padding-top:26px; border-color:rgba(229,177,88,.4); }.scout-card-badge { position:absolute; top:5px; left:7px; z-index:2; padding:4px 6px; border-radius:3px; color:#172226; background:#e2b861; font-size:7px; }
+
+@media (max-width: 900px) { .coach-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }.aux-status-strip { grid-template-columns:1fr; } }
+@media (max-width: 760px) { .aux-choice-panel { padding:16px 12px; }.aux-choice-heading { align-items:flex-start; flex-direction:column; gap:8px; }.aux-choice-heading h2 { font-size:23px; }.ballpark-grid,.coach-grid { display:flex; overflow-x:auto; padding:4px 2px 12px; }.coach-card,.ballpark-card { flex:0 0 245px; min-height:260px; }.scout-banner { align-items:flex-start; flex-direction:column; gap:4px; } }
+
 @media (max-width: 1120px) {
   .title-screen { grid-template-columns: 1fr; }.title-hero { padding-left: 0; }.title-hero h1 { font-size: clamp(62px,12vw,96px); }.title-hero > span { max-width: none; }
   .playback-stage { grid-template-columns: minmax(190px,.55fr) 155px minmax(430px,1.5fr); gap: 12px; padding: 16px; }

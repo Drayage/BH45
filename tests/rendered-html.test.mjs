@@ -82,3 +82,22 @@ test("starter preview assets are removed and card data stays separated", async (
   assert.match(prototype, /const recruits = freeAgents\.slice\(0, count\)/);
   assert.match(prototype, /freeAgents: freeAgents\.slice\(count\)/);
 });
+
+test("coaches and ball parks ship as complete expansion sets", async () => {
+  const [coaches, ballparks, prototype] = await Promise.all([
+    readFile(new URL("../data/coaches.json", import.meta.url), "utf8").then(JSON.parse),
+    readFile(new URL("../data/ballparks.json", import.meta.url), "utf8").then(JSON.parse),
+    readFile(new URL("../app/game-prototype.tsx", import.meta.url), "utf8"),
+  ]);
+
+  assert.equal(coaches.length, 15);
+  assert.equal(ballparks.length, 10);
+  assert.equal(new Set(coaches.map((card) => card.id)).size, coaches.length);
+  assert.equal(new Set(ballparks.map((card) => card.id)).size, ballparks.length);
+  assert.ok(coaches.every((card) => card.nameKo && card.abilityTextKo));
+  assert.ok(ballparks.every((card) => card.nameKo && card.abilityTextKo));
+  assert.match(prototype, /game\.phase === "coach_draft"/);
+  assert.match(prototype, /game\.phase === "choosing_ballpark"/);
+  assert.match(prototype, /function applyCoachBeforePlay/);
+  assert.match(prototype, /function applyBallpark/);
+});
