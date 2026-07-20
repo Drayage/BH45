@@ -7,7 +7,13 @@ export function PwaRegister() {
     if (process.env.NODE_ENV !== "production" || !("serviceWorker" in navigator)) return;
 
     const register = () => {
-      navigator.serviceWorker.register("/sw.js", { scope: "/" }).then((registration) => {
+      const manifestHref = document.querySelector<HTMLLinkElement>('link[rel="manifest"]')?.href;
+      const appBase = manifestHref
+        ? new URL("./", manifestHref)
+        : new URL("./", document.baseURI);
+      const workerUrl = new URL("sw.js", appBase);
+
+      navigator.serviceWorker.register(workerUrl.pathname, { scope: appBase.pathname }).then((registration) => {
         registration.update().catch(() => undefined);
       }).catch(() => undefined);
     };

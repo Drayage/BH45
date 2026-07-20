@@ -27,6 +27,14 @@ npm test
 npm run lint
 ```
 
+GitHub Pages용 정적 빌드:
+
+```bash
+npm run build:pages
+```
+
+`main` 브랜치가 갱신되면 GitHub Actions가 정적 빌드를 만들어 `https://drayage.github.io/BH45/`에 배포합니다.
+
 ## PWA
 
 프로덕션 환경에서 서비스 워커가 자동 등록됩니다. 지원 브라우저에서 사이트를 연 뒤 `앱 설치` 또는 `홈 화면에 추가`를 선택하면 독립 실행 앱으로 사용할 수 있습니다. 처음 한 번 온라인으로 실행한 뒤에는 캐시된 앱 셸로 다시 열 수 있습니다.

@@ -113,8 +113,8 @@ test("ships an installable PWA shell", async () => {
     readFile(new URL("../app/layout.tsx", import.meta.url), "utf8"),
   ]);
 
-  assert.equal(manifest.start_url, "/");
-  assert.equal(manifest.scope, "/");
+  assert.equal(manifest.start_url, "./");
+  assert.equal(manifest.scope, "./");
   assert.equal(manifest.display, "standalone");
   assert.ok(manifest.icons.some((icon) => icon.sizes === "192x192"));
   assert.ok(manifest.icons.some((icon) => icon.sizes === "512x512" && icon.purpose === "maskable"));
@@ -126,6 +126,21 @@ test("ships an installable PWA shell", async () => {
   ]);
   assert.match(worker, /self\.addEventListener\("install"/);
   assert.match(worker, /self\.addEventListener\("fetch"/);
-  assert.match(registration, /navigator\.serviceWorker\.register\("\/sw\.js"/);
+  assert.match(registration, /new URL\("sw\.js", appBase\)/);
   assert.match(layout, /manifest: "\/manifest\.webmanifest"/);
+});
+
+test("GitHub Pages build targets the repository subpath", async () => {
+  const [config, workflow, pageEntry] = await Promise.all([
+    readFile(new URL("../vite.pages.config.ts", import.meta.url), "utf8"),
+    readFile(new URL("../.github/workflows/pages.yml", import.meta.url), "utf8"),
+    readFile(new URL("../github-pages/index.html", import.meta.url), "utf8"),
+  ]);
+
+  assert.match(config, /base: "\/BH45\/"/);
+  assert.match(config, /outDir: "\.\.\/pages-dist"/);
+  assert.match(workflow, /npm run build:pages/);
+  assert.match(workflow, /actions\/upload-pages-artifact@v3/);
+  assert.match(workflow, /actions\/deploy-pages@v4/);
+  assert.match(pageEntry, /%BASE_URL%manifest\.webmanifest/);
 });
