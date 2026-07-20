@@ -1,6 +1,8 @@
 @import "tailwindcss";
 
 :root {
+  --font-display: "Arial Black";
+  --font-body: "Malgun Gothic";
   --ink: #172128;
   --paper: #f3e8cf;
   --cream: #fff4dc;
