@@ -104,3 +104,28 @@ test("coaches and ball parks ship as complete expansion sets", async () => {
   assert.match(prototype, /CPU가 남긴 위협 안타 확정/);
   assert.match(prototype, /focusTeam: "cpu"/);
 });
+
+test("ships an installable PWA shell", async () => {
+  const [manifest, worker, registration, layout] = await Promise.all([
+    readFile(new URL("../public/manifest.webmanifest", import.meta.url), "utf8").then(JSON.parse),
+    readFile(new URL("../public/sw.js", import.meta.url), "utf8"),
+    readFile(new URL("../app/pwa-register.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/layout.tsx", import.meta.url), "utf8"),
+  ]);
+
+  assert.equal(manifest.start_url, "/");
+  assert.equal(manifest.scope, "/");
+  assert.equal(manifest.display, "standalone");
+  assert.ok(manifest.icons.some((icon) => icon.sizes === "192x192"));
+  assert.ok(manifest.icons.some((icon) => icon.sizes === "512x512" && icon.purpose === "maskable"));
+  await Promise.all([
+    access(new URL("../public/icons/icon-192.png", import.meta.url)),
+    access(new URL("../public/icons/icon-512.png", import.meta.url)),
+    access(new URL("../public/icons/icon-maskable-512.png", import.meta.url)),
+    access(new URL("../public/icons/apple-touch-icon.png", import.meta.url)),
+  ]);
+  assert.match(worker, /self\.addEventListener\("install"/);
+  assert.match(worker, /self\.addEventListener\("fetch"/);
+  assert.match(registration, /navigator\.serviceWorker\.register\("\/sw\.js"/);
+  assert.match(layout, /manifest: "\/manifest\.webmanifest"/);
+});
