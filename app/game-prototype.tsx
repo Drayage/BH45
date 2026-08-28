@@ -5,6 +5,21 @@ import cardData from "@/data/base-cards.json";
 import expansionCardData from "@/data/expansion-cards.json";
 import coachData from "@/data/coaches.json";
 import ballparkData from "@/data/ballparks.json";
+import {
+  clearIntent,
+  closeRoom,
+  createRoom,
+  joinRoom,
+  leaveRoom,
+  redactGameState,
+  sendIntent,
+  subscribeIntents,
+  subscribePresence,
+  subscribeRoomState,
+  writeRoomState,
+  type NetIntent,
+  type RoomRole,
+} from "@/lib/net";
 
 type PlayerType = "natural" | "cyborg" | "robot";
 type Speed = "slow" | "average" | "fast";
@@ -50,6 +65,9 @@ type Ballpark = {
   abilityText: string;
   abilityTextKo: string;
 };
+
+type GameMode = "solo" | "online";
+type PendingCardChoice = { cardId: string; pinchSource: "on_deck" | "lineup" | null };
 
 type Runner = { cardId: string; speed: Speed };
 type PendingPlayBonus = { hits: ThreatHit[]; requiredType?: PlayerType; label: string };
@@ -167,6 +185,33 @@ type GameState = {
   cpuActiveCoach: Coach | null;
   playerCoachUsed: boolean;
   cpuCoachUsed: boolean;
+  // Online play (host-authority): "solo" behaves exactly as before (cpu = AI).
+  // "online" replaces the cpu side's AI with a second real player (the guest);
+  // only the host client ever runs the reducer/shuffle/AI logic — see lib/net.ts.
+  // Online v1 scope: only the round-by-round "playing" phase (this field)
+  // is independently interactive for the guest — see pendingPlay usage in
+  // submitCardForSide/resolvePlayPhase. Ballpark/coach/on-deck/buying stay
+  // host-decides-for-both, same as vs-AI (the guest spectates those via the
+  // same broadcast state).
+  mode: GameMode;
+  pendingPlay: { player: PendingCardChoice | null; cpu: PendingCardChoice | null };
+};
+
+export type {
+  Card,
+  Coach,
+  Ballpark,
+  Side,
+  GameState,
+  GameMode,
+  PendingCardChoice,
+  ResolutionEvent,
+  PlayerType,
+  ThreatHit,
+  Hit,
+  Speed,
+  ExpansionSet,
+  AiDifficulty,
 };
 
 const baseCards = cardData as Card[];
@@ -316,13 +361,14 @@ function boostCpuRoster(side: Side, freeAgents: Card[], count: number) {
   };
 }
 
-function makeGame(playerTeam: string, enabledExpansions: ExpansionSet[] = [], aiDifficulty: AiDifficulty = "normal"): GameState {
+function makeGame(playerTeam: string, enabledExpansions: ExpansionSet[] = [], aiDifficulty: AiDifficulty = "normal", mode: GameMode = "solo"): GameState {
   const rivals = teams.filter((team) => team !== playerTeam);
   const cpuTeam = rivals[Math.floor(Math.random() * rivals.length)];
   const freeAgents = shuffle(cards.filter((card) =>
     card.category === "free_agent" && (card.set === "base" || enabledExpansions.includes(card.set as ExpansionSet)),
   ));
-  const cpuBoost = boostCpuRoster(makeSide(cpuTeam), freeAgents, aiDifficultyConfig[aiDifficulty].count);
+  // Online mode: the "cpu" side is a real second player, so skip the AI roster boost.
+  const cpuBoost = boostCpuRoster(makeSide(cpuTeam), freeAgents, mode === "online" ? 0 : aiDifficultyConfig[aiDifficulty].count);
   const parkDeck = shuffle(ballparks);
   const playerBallparkOptions = enabledExpansions.includes("ballparks") ? parkDeck.slice(0, 2) : [];
   const cpuBallparkOptions = enabledExpansions.includes("ballparks") ? parkDeck.slice(2, 4) : [];
@@ -374,6 +420,8 @@ function makeGame(playerTeam: string, enabledExpansions: ExpansionSet[] = [], ai
     cpuActiveCoach: null,
     playerCoachUsed: false,
     cpuCoachUsed: false,
+    mode,
+    pendingPlay: { player: null, cpu: null },
   };
 }
 
@@ -1344,6 +1392,154 @@ function moveEvents(actor: "player" | "cpu", card: Card, move: ReturnType<typeof
   ];
 }
 
+// --- Online play: card-play resolution generalized by side --------------
+//
+// Single source of truth for "a side plays a card (optionally via pinch
+// hitter)". Used for the local human's own clicks (side "player") AND for
+// applying a network-submitted card choice from the online opponent (side
+// "cpu"), so solo-vs-AI and online-vs-guest share one resolution path.
+function pickCardForSide(side: Side, choice: PendingCardChoice, activeCoach: Coach | null) {
+  const selectedCard = side.hand.find((card) => card.id === choice.cardId);
+  if (!selectedCard) return null;
+  let card = selectedCard;
+  let pinchDetail: string | null = null;
+  if (choice.pinchSource) {
+    const canPinch = selectedCard.pinchHitter || coachGrantsPinchHit(activeCoach);
+    const fromOnDeck = choice.pinchSource === "on_deck";
+    const replacement = canPinch ? (fromOnDeck ? side.onDeck : side.deck.shift() ?? null) : null;
+    if (canPinch && replacement) {
+      side.hand = side.hand.filter((item) => item.id !== selectedCard.id);
+      side.discard.push(selectedCard);
+      if (fromOnDeck) side.onDeck = null;
+      side.hand.push(replacement);
+      card = replacement;
+      pinchDetail = `${selectedCard.id}를 더그아웃으로 보내고 ${fromOnDeck ? "온덱" : "라인업 맨 위"} ${replacement.id}를 투입했습니다.`;
+    }
+  }
+  return { card, pinchDetail };
+}
+
+function resolvePlayPhase(current: GameState, playerChoice: PendingCardChoice, cpuChoice: PendingCardChoice): GameState {
+  const player = cloneSide(current.player);
+  const cpu = cloneSide(current.cpu);
+  const playerPick = pickCardForSide(player, playerChoice, current.playerActiveCoach);
+  const cpuPick = pickCardForSide(cpu, cpuChoice, current.cpuActiveCoach);
+  if (!playerPick || !cpuPick) {
+    // Stale/invalid submission (e.g. a race after a reconnect) — drop it
+    // rather than desyncing the two clients.
+    return { ...current, pendingPlay: { player: null, cpu: null } };
+  }
+
+  const freeAgentDeck = [...current.freeAgentDeck];
+  const park = currentBallpark(current);
+  const playerContext: AbilityContext = {
+    extraInnings: current.round > 6,
+    actingIsHome: false,
+    freeAgentDeck,
+    actingCoach: current.playerActiveCoach,
+    ballpark: park,
+  };
+  const playerCoachAction = current.playerCoachUsed
+    ? { events: [] as string[], runnerMotions: [] as RunnerMotion[], used: false }
+    : applyCoachBeforePlay(current.playerActiveCoach, player, cpu, playerContext);
+  const playerMove = playOne(playerPick.card, player, cpu, playerContext);
+  if (playerCoachAction.events.length) playerMove.events.unshift(`코치 ${current.playerActiveCoach?.nameKo} · ${playerCoachAction.events.join(" ")}`);
+  playerMove.abilityMotions.unshift(...playerCoachAction.runnerMotions);
+
+  const cpuContext: AbilityContext = {
+    extraInnings: current.round > 6,
+    actingIsHome: true,
+    freeAgentDeck,
+    actingCoach: current.cpuActiveCoach,
+    ballpark: park,
+  };
+  const cpuCoachAction = current.cpuCoachUsed
+    ? { events: [] as string[], runnerMotions: [] as RunnerMotion[], used: false }
+    : applyCoachBeforePlay(current.cpuActiveCoach, cpu, player, cpuContext);
+  const cpuMove = playOne(cpuPick.card, cpu, player, cpuContext);
+  if (cpuCoachAction.events.length) cpuMove.events.unshift(`${current.mode === "online" ? "상대" : "CPU"} 코치 ${current.cpuActiveCoach?.nameKo} · ${cpuCoachAction.events.join(" ")}`);
+  cpuMove.abilityMotions.unshift(...cpuCoachAction.runnerMotions);
+
+  const nextRound = current.round + 1;
+  const finished = player.hand.length === 0;
+  const resolution = [
+    ...moveEvents("player", playerMove.playedCard, playerMove),
+    ...moveEvents("cpu", cpuMove.playedCard, cpuMove),
+  ];
+  if (playerPick.pinchDetail) {
+    resolution[0] = { ...resolution[0], title: "PH 대타 투입", detail: playerPick.pinchDetail };
+  }
+  if (cpuPick.pinchDetail) {
+    resolution[4] = { ...resolution[4], title: "PH 대타 투입", detail: cpuPick.pinchDetail };
+  }
+  const log = [
+    ...current.log,
+    ...(playerPick.pinchDetail ? [`R${current.round} PH: ${playerPick.pinchDetail}`] : []),
+    `R${current.round} 나: ${playerMove.line}`,
+    ...playerMove.events.map((event) => `↳ ${event}`),
+    playerMove.settled.length ? `↳ 상대 ${playerMove.settled.map((hit) => hitLabel[hit]).join(", ")} 확정` : "↳ 상대 위협 안타 없음",
+    ...(cpuPick.pinchDetail ? [`R${current.round} 상대 PH: ${cpuPick.pinchDetail}`] : []),
+    `R${current.round} CPU: ${cpuMove.line}`,
+    ...cpuMove.events.map((event) => `↳ ${event}`),
+    cpuMove.settled.length ? `↳ 내 ${cpuMove.settled.map((hit) => hitLabel[hit]).join(", ")} 확정` : "↳ 내 위협 안타 없음",
+  ];
+
+  const pendingPlay = { player: null, cpu: null };
+  if (finished) {
+    return {
+      ...current,
+      player,
+      cpu,
+      freeAgentDeck,
+      round: current.round,
+      phase: "visitor_save",
+      selectedId: null,
+      pendingPlay,
+      resolutionKey: current.resolutionKey + 1,
+      lastResolution: resolution,
+      log: [...log, "홈팀 마지막 위협 대기 · 비지터 세이브 선택"],
+      playerCoachUsed: current.playerCoachUsed || playerCoachAction.used,
+      cpuCoachUsed: current.cpuCoachUsed || cpuCoachAction.used,
+    };
+  }
+
+  return {
+    ...current,
+    player,
+    cpu,
+    freeAgentDeck,
+    round: nextRound,
+    phase: "playing",
+    selectedId: null,
+    pendingPlay,
+    resolutionKey: current.resolutionKey + 1,
+    lastResolution: resolution,
+    log,
+    playerCoachUsed: current.playerCoachUsed || playerCoachAction.used,
+    cpuCoachUsed: current.cpuCoachUsed || cpuCoachAction.used,
+  };
+}
+
+// Records one side's card choice; once both sides have chosen (auto-picked
+// by the built-in AI in solo mode, or submitted by the guest over the
+// network in online mode) the round resolves via resolvePlayPhase.
+function submitCardForSide(current: GameState, side: "player" | "cpu", choice: PendingCardChoice): GameState {
+  const oppSide: "player" | "cpu" = side === "player" ? "cpu" : "player";
+  const pendingPlay = { ...current.pendingPlay, [side]: choice };
+  let oppChoice = pendingPlay[oppSide];
+  if (!oppChoice && oppSide === "cpu" && current.mode !== "online") {
+    const auto = chooseCpuCard(current.cpu, current.player);
+    if (auto) oppChoice = { cardId: auto.id, pinchSource: null };
+  }
+  if (!oppChoice) {
+    return { ...current, pendingPlay };
+  }
+  const withPending = { ...current, pendingPlay };
+  return side === "player"
+    ? resolvePlayPhase(withPending, choice, oppChoice)
+    : resolvePlayPhase(withPending, oppChoice, choice);
+}
+
 function ResolutionConsole({ game, activeIndex, running }: { game: GameState; activeIndex: number; running: boolean }) {
   const active = game.lastResolution[activeIndex] ?? game.lastResolution.at(-1);
   return (
@@ -1600,6 +1796,12 @@ function TitleScreen({
   onExpansionChange,
   onDifficultyChange,
   onStart,
+  netStatus,
+  netError,
+  joinCodeInput,
+  onJoinCodeChange,
+  onHostOnline,
+  onJoinOnline,
 }: {
   selectedTeam: string;
   enabledExpansions: ExpansionSet[];
@@ -1608,6 +1810,12 @@ function TitleScreen({
   onExpansionChange: (set: ExpansionSet, enabled: boolean) => void;
   onDifficultyChange: (difficulty: AiDifficulty) => void;
   onStart: () => void;
+  netStatus: "idle" | "connecting" | "connected" | "error";
+  netError: string | null;
+  joinCodeInput: string;
+  onJoinCodeChange: (value: string) => void;
+  onHostOnline: () => void;
+  onJoinOnline: () => void;
 }) {
   const marketCount = baseCards.filter((card) => card.category === "free_agent").length
     + enabledExpansions.reduce((total, set) => total + expansionCards.filter((card) => card.set === set).length, 0);
@@ -1688,6 +1896,38 @@ function TitleScreen({
         </div>
         <button type="button" className="season-start" onClick={onStart}><span>PLAY BALL</span><b>시즌 시작</b><i>→</i></button>
       </section>
+
+      <section className="online-setup" aria-label="온라인 대전 설정">
+        <div className="setup-heading">
+          <div><p>ONLINE · HEAD TO HEAD</p><h2>온라인 대전</h2></div>
+          <span>위에서 고른 내 팀/카드 세트로 방을 만들면 상대가 코드로 접속합니다. 나는 항상 원정팀, 접속한 상대는 항상 홈팀입니다.</span>
+        </div>
+        <div className="online-actions">
+          <div className="online-action-card">
+            <b>방 만들기</b>
+            <span>새 방 코드를 발급받고 상대의 접속을 기다립니다.</span>
+            <button type="button" onClick={onHostOnline} disabled={netStatus === "connecting"}>
+              {netStatus === "connecting" ? "연결 중…" : "방 만들기"}
+            </button>
+          </div>
+          <div className="online-action-card">
+            <b>방 참가하기</b>
+            <span>상대에게 받은 5자리 코드를 입력하세요.</span>
+            <input
+              type="text"
+              value={joinCodeInput}
+              onChange={(event) => onJoinCodeChange(event.target.value.toUpperCase())}
+              placeholder="방 코드"
+              maxLength={5}
+              aria-label="방 코드 입력"
+            />
+            <button type="button" onClick={onJoinOnline} disabled={netStatus === "connecting" || !joinCodeInput.trim()}>
+              {netStatus === "connecting" ? "연결 중…" : "참가하기"}
+            </button>
+          </div>
+        </div>
+        {netError && <p className="online-error" role="alert">{netError}</p>}
+      </section>
     </main>
   );
 }
@@ -1744,6 +1984,121 @@ export function GamePrototype() {
   const turnWasRunning = useRef(false);
   const previousPlaybackActor = useRef<"player" | "cpu" | null>(null);
 
+  // --- Online play (host-authority over Firebase RTDB) --------------------
+  const [onlineRole, setOnlineRole] = useState<RoomRole | null>(null);
+  const [roomCode, setRoomCode] = useState<string | null>(null);
+  const [joinCodeInput, setJoinCodeInput] = useState("");
+  const [netStatus, setNetStatus] = useState<"idle" | "connecting" | "connected" | "error">("idle");
+  const [netError, setNetError] = useState<string | null>(null);
+  const [opponentPresent, setOpponentPresent] = useState(false);
+  const seqRef = useRef(0);
+  const processedIntentsRef = useRef<Set<string>>(new Set());
+  // "mySide" is which Side the local human controls: the host always plays
+  // "player" (away/visitor, same as every solo game); a guest always plays
+  // "cpu" (home) — replacing what would otherwise be the AI opponent.
+  const mySide: "player" | "cpu" = onlineRole === "guest" ? "cpu" : "player";
+  const oppSide: "player" | "cpu" = mySide === "player" ? "cpu" : "player";
+
+  function leaveOnlineGame() {
+    if (roomCode && onlineRole) {
+      leaveRoom(roomCode, onlineRole);
+      if (onlineRole === "host") void closeRoom(roomCode).catch(() => {});
+    }
+    setOnlineRole(null);
+    setRoomCode(null);
+    setNetStatus("idle");
+    setNetError(null);
+    setOpponentPresent(false);
+  }
+
+  async function hostOnlineGame() {
+    setNetStatus("connecting");
+    setNetError(null);
+    try {
+      const { roomCode: code } = await createRoom();
+      seqRef.current = 0;
+      processedIntentsRef.current = new Set();
+      setGame(makeGame(selectedTeam, enabledExpansions, aiDifficulty, "online"));
+      setRoomCode(code);
+      setOnlineRole("host");
+      setNetStatus("connected");
+      setScreen("game");
+      if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
+    } catch (err) {
+      setNetStatus("error");
+      setNetError(err instanceof Error ? err.message : String(err));
+    }
+  }
+
+  async function joinOnlineGame() {
+    setNetStatus("connecting");
+    setNetError(null);
+    try {
+      await joinRoom(joinCodeInput);
+      seqRef.current = 0;
+      processedIntentsRef.current = new Set();
+      setRoomCode(joinCodeInput.trim().toUpperCase());
+      setOnlineRole("guest");
+      setNetStatus("connected");
+      setScreen("game");
+      if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
+      // The guest's `game` state is populated by the host's first broadcast
+      // (see the subscribeRoomState effect below) — no local makeGame() call.
+    } catch (err) {
+      setNetStatus("error");
+      setNetError(err instanceof Error ? err.message : String(err));
+    }
+  }
+
+  function sendGuestIntent(action: NetIntent) {
+    if (!roomCode) return;
+    void sendIntent(roomCode, action).catch((err) => setNetError(err instanceof Error ? err.message : String(err)));
+  }
+
+  // Host: after every local state change, broadcast a redacted view (the
+  // guest is always "cpu", so the host's own "player" hand/deck is hidden)
+  // tagged with a monotonically increasing seq. writeRoomState's own
+  // transaction guards against a late/out-of-order write clobbering a newer
+  // one if two broadcasts ever raced.
+  useEffect(() => {
+    if (onlineRole !== "host" || !roomCode) return;
+    seqRef.current += 1;
+    void writeRoomState(roomCode, seqRef.current, redactGameState(game, "player")).catch((err) => {
+      setNetError(err instanceof Error ? err.message : String(err));
+    });
+  }, [game, onlineRole, roomCode]);
+
+  // Host: apply guest intents through the same reducer used for local
+  // actions, then drop the processed intent.
+  useEffect(() => {
+    if (onlineRole !== "host" || !roomCode) return;
+    return subscribeIntents(roomCode, (intentId, action) => {
+      if (processedIntentsRef.current.has(intentId)) return;
+      processedIntentsRef.current.add(intentId);
+      if (action.type === "submitCard") {
+        setGame((current) => submitCardForSide(current, "cpu", { cardId: action.cardId, pinchSource: action.pinchSource }));
+      }
+      void clearIntent(roomCode, intentId).catch(() => {});
+    });
+  }, [onlineRole, roomCode]);
+
+  // Guest: the ENTIRE game state is driven by the host's broadcasts. This
+  // reuses every existing playback/timer effect below unchanged — they
+  // already react to `game.resolutionKey`/`game.lastResolution` regardless
+  // of whether `game` came from a local reducer call or from here.
+  useEffect(() => {
+    if (onlineRole !== "guest" || !roomCode) return;
+    return subscribeRoomState(roomCode, (nextState) => {
+      setGame(nextState);
+    });
+  }, [onlineRole, roomCode]);
+
+  useEffect(() => {
+    if (!onlineRole || !roomCode) return;
+    const watchRole: RoomRole = onlineRole === "host" ? "guest" : "host";
+    return subscribePresence(roomCode, watchRole, setOpponentPresent);
+  }, [onlineRole, roomCode]);
+
   const showTurnTransition = useCallback((turn: "cpu" | "player") => {
     if (turnTransitionTimer.current) clearTimeout(turnTransitionTimer.current);
     setTurnTransition(turn);
@@ -1790,13 +2145,16 @@ export function GamePrototype() {
       if (previousPlaybackActor.current === "cpu" && actor === "player") nextTurn = "player";
       previousPlaybackActor.current = actor;
     } else if (!playbackRunning && wasRunning) {
-      if (game.phase === "playing") nextTurn = "player";
+      // In online mode both sides submit their next card independently
+      // (no strict turn order), so announce it as "my turn" for whichever
+      // viewer this is; solo mode keeps the original player-only banner.
+      if (game.phase === "playing") nextTurn = onlineRole ? mySide : "player";
       previousPlaybackActor.current = null;
     }
     if (!nextTurn) return;
     const timer = setTimeout(() => showTurnTransition(nextTurn), 0);
     return () => clearTimeout(timer);
-  }, [game.lastResolution, game.phase, playbackIndex, playbackRunning, showTurnTransition]);
+  }, [game.lastResolution, game.phase, mySide, onlineRole, playbackIndex, playbackRunning, showTurnTransition]);
 
   useEffect(() => () => {
     if (turnTransitionTimer.current) clearTimeout(turnTransitionTimer.current);
@@ -1837,11 +2195,13 @@ export function GamePrototype() {
   }
 
   function restart() {
+    leaveOnlineGame();
     setGame(makeGame(selectedTeam, enabledExpansions, aiDifficulty));
     setScreen("game");
   }
 
   function startSeason() {
+    leaveOnlineGame();
     setGame(makeGame(selectedTeam, enabledExpansions, aiDifficulty));
     setScreen("game");
     if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
@@ -1852,6 +2212,7 @@ export function GamePrototype() {
   }
 
   function selectBallpark(ballparkId: string) {
+    if (onlineRole === "guest") return; // v1 scope: host decides pre-game setup for both sides online
     setGame((current) => {
       if (current.phase !== "choosing_ballpark") return current;
       const selected = current.playerBallparkOptions.find((park) => park.id === ballparkId);
@@ -1868,6 +2229,7 @@ export function GamePrototype() {
   }
 
   function chooseCoachDraft(coachId: string) {
+    if (onlineRole === "guest") return;
     setGame((current) => {
       if (current.phase !== "coach_draft") return current;
       const selected = current.playerCoachDraftPool.find((coach) => coach.id === coachId);
@@ -1895,6 +2257,7 @@ export function GamePrototype() {
   }
 
   function chooseGameCoach(coachId: string | null) {
+    if (onlineRole === "guest") return;
     setGame((current) => {
       if (current.phase !== "choosing_coach") return current;
       const playerCoach = coachId ? current.playerCoaches.find((coach) => coach.id === coachId) ?? null : null;
@@ -1916,11 +2279,13 @@ export function GamePrototype() {
   }
 
   function returnToTitle() {
+    leaveOnlineGame();
     setScreen("title");
     if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   function prepareOnDeck(cardId: string | null) {
+    if (onlineRole === "guest") return;
     setGame((current) => {
       if (current.phase !== "setting_on_deck") return current;
       const player = cloneSide(current.player);
@@ -1945,114 +2310,25 @@ export function GamePrototype() {
     });
   }
 
+  // Plays a card for `mySide` (the local human — "player" for solo/host,
+  // "cpu" for the online guest). Host/solo resolve locally through the
+  // shared reducer; the online guest instead sends an intent for the host
+  // to apply, and picks up the result from the next broadcast state.
   function playRound(cardId: string, pinchSource: "on_deck" | "lineup" | null = null) {
     if (game.phase !== "playing" || playbackRunning) return;
-    setPlaybackRunning(true);
-    setGame((current) => {
-      const player = cloneSide(current.player);
-      const cpu = cloneSide(current.cpu);
-      const selectedCard = player.hand.find((card) => card.id === cardId);
-      if (!selectedCard) return current;
-      let playerCard = selectedCard;
-      let pinchHitDetail: string | null = null;
-      if (pinchSource) {
-        if (!selectedCard.pinchHitter && !coachGrantsPinchHit(current.playerActiveCoach)) return current;
-        const fromOnDeck = pinchSource === "on_deck";
-        const replacement = fromOnDeck ? player.onDeck : player.deck.shift();
-        if (!replacement) return current;
-        player.hand = player.hand.filter((card) => card.id !== selectedCard.id);
-        player.discard.push(selectedCard);
-        if (fromOnDeck) player.onDeck = null;
-        player.hand.push(replacement);
-        playerCard = replacement;
-        pinchHitDetail = `${selectedCard.id}를 더그아웃으로 보내고 ${fromOnDeck ? "온덱" : "라인업 맨 위"} ${replacement.id}를 투입했습니다.`;
-      }
-
-      const freeAgentDeck = [...current.freeAgentDeck];
-      const park = currentBallpark(current);
-      const playerContext: AbilityContext = {
-        extraInnings: current.round > 6,
-        actingIsHome: false,
-        freeAgentDeck,
-        actingCoach: current.playerActiveCoach,
-        ballpark: park,
-      };
-      const playerCoachAction = current.playerCoachUsed
-        ? { events: [] as string[], runnerMotions: [] as RunnerMotion[], used: false }
-        : applyCoachBeforePlay(current.playerActiveCoach, player, cpu, playerContext);
-      const playerMove = playOne(playerCard, player, cpu, playerContext);
-      if (playerCoachAction.events.length) playerMove.events.unshift(`코치 ${current.playerActiveCoach?.nameKo} · ${playerCoachAction.events.join(" ")}`);
-      playerMove.abilityMotions.unshift(...playerCoachAction.runnerMotions);
-      const cpuCard = chooseCpuCard(cpu, player);
-      const cpuContext: AbilityContext = {
-        extraInnings: current.round > 6,
-        actingIsHome: true,
-        freeAgentDeck,
-        actingCoach: current.cpuActiveCoach,
-        ballpark: park,
-      };
-      const cpuCoachAction = current.cpuCoachUsed
-        ? { events: [] as string[], runnerMotions: [] as RunnerMotion[], used: false }
-        : applyCoachBeforePlay(current.cpuActiveCoach, cpu, player, cpuContext);
-      const cpuMove = playOne(cpuCard, cpu, player, cpuContext);
-      if (cpuCoachAction.events.length) cpuMove.events.unshift(`CPU 코치 ${current.cpuActiveCoach?.nameKo} · ${cpuCoachAction.events.join(" ")}`);
-      cpuMove.abilityMotions.unshift(...cpuCoachAction.runnerMotions);
-      const nextRound = current.round + 1;
-      const finished = player.hand.length === 0;
-      const resolution = [
-        ...moveEvents("player", playerMove.playedCard, playerMove),
-        ...moveEvents("cpu", cpuMove.playedCard, cpuMove),
-      ];
-      if (pinchHitDetail) {
-        resolution[0] = { ...resolution[0], title: "PH 대타 투입", detail: pinchHitDetail };
-      }
-      const log = [
-        ...current.log,
-        ...(pinchHitDetail ? [`R${current.round} PH: ${pinchHitDetail}`] : []),
-        `R${current.round} 나: ${playerMove.line}`,
-        ...playerMove.events.map((event) => `↳ ${event}`),
-        playerMove.settled.length ? `↳ 상대 ${playerMove.settled.map((hit) => hitLabel[hit]).join(", ")} 확정` : "↳ 상대 위협 안타 없음",
-        `R${current.round} CPU: ${cpuMove.line}`,
-        ...cpuMove.events.map((event) => `↳ ${event}`),
-        cpuMove.settled.length ? `↳ 내 ${cpuMove.settled.map((hit) => hitLabel[hit]).join(", ")} 확정` : "↳ 내 위협 안타 없음",
-      ];
-
-      if (finished) {
-        return {
-          ...current,
-          player,
-          cpu,
-          freeAgentDeck,
-          round: current.round,
-          phase: "visitor_save",
-          selectedId: null,
-          resolutionKey: current.resolutionKey + 1,
-          lastResolution: resolution,
-          log: [...log, "홈팀 마지막 위협 대기 · 비지터 세이브 선택"],
-          playerCoachUsed: current.playerCoachUsed || playerCoachAction.used,
-          cpuCoachUsed: current.cpuCoachUsed || cpuCoachAction.used,
-        };
-      }
-
-      return {
-        ...current,
-        player,
-        cpu,
-        freeAgentDeck,
-        round: finished ? 6 : nextRound,
-        phase: "playing",
-        selectedId: null,
-        resolutionKey: current.resolutionKey + 1,
-        lastResolution: resolution,
-        log,
-        playerCoachUsed: current.playerCoachUsed || playerCoachAction.used,
-        cpuCoachUsed: current.cpuCoachUsed || cpuCoachAction.used,
-      };
-    });
+    if (game.pendingPlay[mySide]) return; // already submitted, awaiting opponent/resolution
+    const choice: PendingCardChoice = { cardId, pinchSource };
+    if (mySide === "cpu") {
+      sendGuestIntent({ type: "submitCard", ...choice });
+      return;
+    }
+    const willResolveNow = game.mode !== "online" || Boolean(game.pendingPlay.cpu);
+    if (willResolveNow) setPlaybackRunning(true);
+    setGame((current) => submitCardForSide(current, "player", choice));
   }
 
   function resolveVisitorSave(source: "on_deck" | "lineup" | null) {
-    if (playbackRunning) return;
+    if (playbackRunning || onlineRole === "guest") return;
     setPlaybackRunning(true);
     setGame((current) => {
       if (current.phase !== "visitor_save") return current;
@@ -2130,7 +2406,7 @@ export function GamePrototype() {
   }
 
   function selectFreeAgent(cardId: string) {
-    if (playbackRunning) return;
+    if (playbackRunning || onlineRole === "guest") return;
     setGame((current) => {
       if (current.phase !== "buying" || current.purchaseTurn !== "player") return current;
       const card = [...current.market, ...current.scoutMarket].find((item) => item.id === cardId);
@@ -2140,7 +2416,7 @@ export function GamePrototype() {
   }
 
   function sendToMinors(cardId: string) {
-    if (playbackRunning) return;
+    if (playbackRunning || onlineRole === "guest") return;
     setGame((current) => {
       if (current.phase !== "buying" || !current.pendingPurchaseId) return current;
       const recruit = [...current.market, ...current.scoutMarket].find((card) => card.id === current.pendingPurchaseId);
@@ -2177,7 +2453,7 @@ export function GamePrototype() {
   }
 
   function finishBuyRound() {
-    if (playbackRunning) return;
+    if (playbackRunning || onlineRole === "guest") return;
     setGame((current) => {
       if (current.phase !== "buying") return current;
 
@@ -2266,6 +2542,11 @@ export function GamePrototype() {
   const playbackTotal = game.lastResolution.filter((event) => Boolean(event.snapshot)).length;
   const playbackStep = Math.max(0, game.lastResolution.slice(0, playbackIndex + 1).filter((event) => Boolean(event.snapshot)).length - 1);
   const pendingRecruit = [...game.market, ...game.scoutMarket].find((card) => card.id === game.pendingPurchaseId) ?? null;
+  const myHandSide = game[mySide];
+  const oppHandSide = game[oppSide];
+  const myActiveCoach = mySide === "cpu" ? game.cpuActiveCoach : game.playerActiveCoach;
+  const awaitingOpponentCard = game.phase === "playing" && Boolean(game.pendingPlay[mySide]) && !game.pendingPlay[oppSide];
+  const guestSpectating = onlineRole === "guest";
 
   if (screen === "title") {
     return (
@@ -2277,6 +2558,12 @@ export function GamePrototype() {
         onExpansionChange={setExpansion}
         onDifficultyChange={setAiDifficulty}
         onStart={startSeason}
+        netStatus={netStatus}
+        netError={netError}
+        joinCodeInput={joinCodeInput}
+        onJoinCodeChange={setJoinCodeInput}
+        onHostOnline={hostOnlineGame}
+        onJoinOnline={joinOnlineGame}
       />
     );
   }
@@ -2290,8 +2577,8 @@ export function GamePrototype() {
       {turnTransition && (
         <div className={`turn-transition turn-${turnTransition}`} role="status" aria-live="polite">
           <small>TURN CHANGE</small>
-          <strong>{turnTransition === "cpu" ? "CPU 차례" : "내 차례"}</strong>
-          <span>{turnTransition === "cpu" ? "상대 카드 처리" : "다음 카드 선택"}</span>
+          <strong>{turnTransition === mySide ? "내 차례" : onlineRole ? "상대 차례" : "CPU 차례"}</strong>
+          <span>{turnTransition === mySide ? "다음 카드 선택" : "상대 카드 처리"}</span>
         </div>
       )}
       <header className="topbar">
@@ -2303,9 +2590,18 @@ export function GamePrototype() {
           </div>
         </div>
         <nav aria-label="프로토타입 메뉴">
+          {onlineRole && (
+            <div className="online-status-badge">
+              <span className={`presence-dot ${opponentPresent ? "is-online" : ""}`} aria-hidden="true" />
+              <div>
+                <b>{roomCode}</b>
+                <span>{onlineRole === "host" ? "호스트 · 원정" : "게스트 · 홈"} · 상대 {opponentPresent ? "접속됨" : "대기 중"}</span>
+              </div>
+            </div>
+          )}
           <button type="button" className="nav-button" onClick={() => setShowRules((value) => !value)}>{showRules ? "규칙 닫기" : "핵심 규칙"}</button>
-          <button type="button" className="nav-button" onClick={returnToTitle}>타이틀</button>
-          <button type="button" className="restart-button" onClick={restart}>새 시즌</button>
+          <button type="button" className="nav-button" onClick={returnToTitle}>{onlineRole ? "방 나가기" : "타이틀"}</button>
+          {!onlineRole && <button type="button" className="restart-button" onClick={restart}>새 시즌</button>}
         </nav>
       </header>
 
@@ -2383,7 +2679,7 @@ export function GamePrototype() {
       <section className="stadium-board">
         <div className="dugout cpu-dugout">
           <div className="dugout-title">
-            <span>CPU · {teamLabel[game.cpu.team]} <em>홈 · 후공</em></span>
+            <span>{onlineRole ? (mySide === "cpu" ? "나" : "상대") : "CPU"} · {teamLabel[game.cpu.team]} <em>홈 · 후공</em></span>
             <b>수익 {game.cpu.revenue}</b>
           </div>
           <div className="cpu-hand" aria-label={`CPU 남은 카드 ${game.cpu.hand.length}장`}>
@@ -2421,7 +2717,7 @@ export function GamePrototype() {
 
         <div className="dugout player-dugout">
           <div className="dugout-title">
-            <span>YOU · {teamLabel[game.player.team]} <em>원정 · 선공</em></span>
+            <span>{onlineRole ? (mySide === "player" ? "나" : "상대") : "YOU"} · {teamLabel[game.player.team]} <em>원정 · 선공</em></span>
             <b>수익 {game.player.revenue}</b>
           </div>
           <div className="last-played player-last">
@@ -2434,26 +2730,29 @@ export function GamePrototype() {
         <section className="aux-choice-panel ballpark-choice-panel">
           <div className="aux-choice-heading"><div><p>BALL PARKS · EXPANSION #10</p><h2>두 구장 중 내 홈구장을 선택하세요</h2></div><span>각 팀은 2장 중 1장을 고릅니다. 홈구장 효과는 홈 필드를 가진 경기에서 양 팀 모두에게 적용됩니다.</span></div>
           <div className="aux-card-grid ballpark-grid">
-            {game.playerBallparkOptions.map((ballpark) => <BallparkCard key={ballpark.id} ballpark={ballpark} onClick={() => selectBallpark(ballpark.id)} />)}
+            {game.playerBallparkOptions.map((ballpark) => <BallparkCard key={ballpark.id} ballpark={ballpark} onClick={guestSpectating ? undefined : () => selectBallpark(ballpark.id)} />)}
           </div>
           <p className="aux-rule-note">CPU도 비공개 후보 2장 중 하나를 골랐습니다. 현재 솔로 진행 규칙상 CPU가 홈팀이므로 CPU 홈구장이 활성 구장으로 표시됩니다.</p>
+          {guestSpectating && <p className="online-spectator-note">호스트가 홈구장을 선택하는 중입니다 · 잠시만 기다려주세요</p>}
         </section>
       ) : game.phase === "coach_draft" ? (
         <section className="aux-choice-panel coach-draft-panel">
           <div className="aux-choice-heading"><div><p>COACH DRAFT · ROUND {game.coachDraftRound + 1}/4</p><h2>한 명을 영입하고 나머지는 CPU에게 넘기세요</h2></div><span>선택할 때마다 CPU도 한 명을 고르고, 남은 카드 묶음을 서로 교환합니다. 완료하면 양 팀이 코치 4명씩 보유합니다.</span></div>
           <div className="aux-card-grid coach-grid">
-            {game.playerCoachDraftPool.map((coach) => <CoachCard key={coach.id} coach={coach} onClick={() => chooseCoachDraft(coach.id)} />)}
+            {game.playerCoachDraftPool.map((coach) => <CoachCard key={coach.id} coach={coach} onClick={guestSpectating ? undefined : () => chooseCoachDraft(coach.id)} />)}
           </div>
           <div className="draft-roster"><span>내가 뽑은 코치</span>{game.playerCoaches.length ? game.playerCoaches.map((coach) => <b key={coach.id}>{coach.id} · {coach.nameKo}</b>) : <em>아직 없음</em>}</div>
+          {guestSpectating && <p className="online-spectator-note">호스트가 코치를 드래프트하는 중입니다 · 잠시만 기다려주세요</p>}
         </section>
       ) : game.phase === "choosing_coach" ? (
         <section className="aux-choice-panel coach-select-panel">
           <div className="aux-choice-heading"><div><p>PRE-GAME · COACH DECLARATION</p><h2>{game.gameNumber}차전에 사용할 코치를 공개하세요</h2></div><span>CPU 홈팀은 이미 코치를 정했습니다. 선택한 코치는 이번 미니게임과 이어지는 영입 단계에만 적용되고 소모됩니다.</span></div>
           <div className="cpu-coach-reveal"><small>CPU 공개 예정</small><strong>{[...game.cpuCoaches].sort((a, b) => coachValue(b) - coachValue(a))[0]?.nameKo ?? "사용 안 함"}</strong></div>
           <div className="aux-card-grid coach-grid">
-            {game.playerCoaches.map((coach) => <CoachCard key={coach.id} coach={coach} onClick={() => chooseGameCoach(coach.id)} />)}
+            {game.playerCoaches.map((coach) => <CoachCard key={coach.id} coach={coach} onClick={guestSpectating ? undefined : () => chooseGameCoach(coach.id)} />)}
           </div>
-          <button type="button" className="skip-coach" onClick={() => chooseGameCoach(null)}>이번 경기에는 코치 사용 안 함</button>
+          <button type="button" className="skip-coach" disabled={guestSpectating} onClick={() => chooseGameCoach(null)}>이번 경기에는 코치 사용 안 함</button>
+          {guestSpectating && <p className="online-spectator-note">호스트가 코치를 선택하는 중입니다 · 잠시만 기다려주세요</p>}
         </section>
       ) : game.phase === "visitor_save" ? (
         <section ref={visitorSaveAnchorRef} className="visitor-save-panel">
@@ -2466,21 +2765,22 @@ export function GamePrototype() {
             <div className="save-threat-count"><span>남은 CPU 위협</span><strong>{game.cpu.pending.length}</strong></div>
           </div>
           <div className="visitor-save-options">
-            <button type="button" className="save-option skip-save" disabled={playbackRunning} onClick={() => resolveVisitorSave(null)}>
+            <button type="button" className="save-option skip-save" disabled={playbackRunning || guestSpectating} onClick={() => resolveVisitorSave(null)}>
               <small>선택 1</small><strong>사용 안 함</strong><span>카드를 소비하지 않고 위협을 그대로 처리</span>
             </button>
             <div className={`save-option-card ${game.player.onDeck ? "is-available" : "is-unavailable"}`}>
               <small>선택 2 · 온덱 공개</small>
               {game.player.onDeck ? <PlayerCard card={game.player.onDeck} disabled /> : <div className="empty-card">보관한 온덱 카드가 없습니다</div>}
-              <button type="button" disabled={playbackRunning || !game.player.onDeck} onClick={() => resolveVisitorSave("on_deck")}>온덱으로 세이브</button>
+              <button type="button" disabled={playbackRunning || guestSpectating || !game.player.onDeck} onClick={() => resolveVisitorSave("on_deck")}>온덱으로 세이브</button>
             </div>
             <div className="save-option-card lineup-save">
               <small>선택 3 · 라인업 맨 위 공개</small>
               <span className="large-card-back" aria-label="아직 공개하지 않은 라인업 맨 위 카드">45</span>
-              <button type="button" disabled={playbackRunning || (game.player.deck.length === 0 && game.player.discard.length === 0)} onClick={() => resolveVisitorSave("lineup")}>라인업 공개 후 세이브</button>
+              <button type="button" disabled={playbackRunning || guestSpectating || (game.player.deck.length === 0 && game.player.discard.length === 0)} onClick={() => resolveVisitorSave("lineup")}>라인업 공개 후 세이브</button>
             </div>
           </div>
           {playbackRunning && <p className="save-waiting">6번째 카드 처리가 끝나면 선택할 수 있습니다.</p>}
+          {guestSpectating && <p className="online-spectator-note">비지터 세이브는 원정팀(호스트) 전용 판정입니다.</p>}
         </section>
       ) : game.phase === "buying" ? (
         <section ref={marketAnchorRef} className="buy-section">
@@ -2490,10 +2790,11 @@ export function GamePrototype() {
               <h2>자유계약 선수 영입</h2>
             </div>
             <div className="budget-chip"><span>내 예산</span><strong>{game.playerBudget}</strong></div>
-            <button type="button" className="finish-buy" onClick={finishBuyRound}>
+            <button type="button" className="finish-buy" disabled={guestSpectating} onClick={finishBuyRound}>
               {!game.cpuBought ? "내 구매 종료 · AI 구매 보기" : game.purchaseTurn === null ? "AI 구매 확인 · 다음 경기" : "구매 종료 · 다음 경기"}
             </button>
           </div>
+          {guestSpectating && <p className="online-spectator-note">호스트가 영입을 진행하는 중입니다 · 잠시만 기다려주세요</p>}
           <div className={`cpu-market-report ${game.cpuBought ? "is-complete" : "is-waiting"}`}>
             <div>
               <p>CPU MARKET REPORT</p>
@@ -2524,7 +2825,7 @@ export function GamePrototype() {
                   <PlayerCard
                     card={card}
                     selected={game.pendingPurchaseId === card.id}
-                    disabled={playbackRunning || !affordable || game.purchaseTurn !== "player"}
+                    disabled={playbackRunning || guestSpectating || !affordable || game.purchaseTurn !== "player"}
                     onClick={() => selectFreeAgent(card.id)}
                   />
                   <span className={affordable ? "can-buy" : "cannot-buy"}>비용 {card.cost} · {affordable ? "영입 가능" : "예산 부족"}</span>
@@ -2549,7 +2850,7 @@ export function GamePrototype() {
                 <div className="demote-cards">
                   {game.player.played.map((card) => (
                     <div className="demote-option" key={card.id}>
-                      <PlayerCard card={card} onClick={() => sendToMinors(card.id)} />
+                      <PlayerCard card={card} disabled={guestSpectating} onClick={() => sendToMinors(card.id)} />
                       <span>이 선수를 마이너로 보내고 영입 확정</span>
                     </div>
                   ))}
@@ -2568,19 +2869,20 @@ export function GamePrototype() {
               <h2>온덱으로 보관할 카드 한 장을 선택하세요</h2>
               <span>선택한 카드는 손패에서 빼고 라인업 맨 위 카드로 보충합니다. PH 카드 사용이나 비지터 세이브 때 온덱 카드를 꺼낼 수 있습니다.</span>
             </div>
-            <button type="button" onClick={() => prepareOnDeck(null)}>온덱 없이 시작</button>
+            <button type="button" disabled={guestSpectating} onClick={() => prepareOnDeck(null)}>온덱 없이 시작</button>
           </div>
+          {guestSpectating && <p className="online-spectator-note">호스트가 온덱 카드를 준비하는 중입니다 · 잠시만 기다려주세요</p>}
           <div className="on-deck-choices">
             {game.player.hand.map((card) => (
               <div className="on-deck-option" key={card.id}>
-                <PlayerCard card={card} onClick={() => prepareOnDeck(card.id)} />
+                <PlayerCard card={card} disabled={guestSpectating} onClick={() => prepareOnDeck(card.id)} />
                 <span>이 카드를 온덱에 보관</span>
               </div>
             ))}
           </div>
         </section>
       ) : (
-        <section ref={handAnchorRef} className={`hand-section ${playbackRunning ? "is-locked" : ""}`}>
+        <section ref={handAnchorRef} className={`hand-section ${playbackRunning || awaitingOpponentCard ? "is-locked" : ""}`}>
           <div className="section-heading">
             <div>
               <p>ROUND {game.round} · YOUR MOVE</p>
@@ -2588,39 +2890,46 @@ export function GamePrototype() {
             </div>
             <span>공개 → 능력 → 상대 위협 확정 → 새 위협 등록</span>
           </div>
-          <aside className={`on-deck-summary ${game.player.onDeck ? "has-card" : "is-empty"}`}>
-            <div><small>ON DECK</small><strong>{game.player.onDeck ? game.player.onDeck.id : "준비하지 않음"}</strong></div>
-            {game.player.onDeck ? (
+          {onlineRole && (
+            <p className="online-wait-banner">
+              {awaitingOpponentCard
+                ? "카드를 제출했습니다 · 상대의 선택을 기다리는 중"
+                : "온라인 대전 · 카드를 내면 상대에게 즉시 전달됩니다"}
+            </p>
+          )}
+          <aside className={`on-deck-summary ${myHandSide.onDeck ? "has-card" : "is-empty"}`}>
+            <div><small>ON DECK</small><strong>{myHandSide.onDeck ? myHandSide.onDeck.id : "준비하지 않음"}</strong></div>
+            {myHandSide.onDeck ? (
               <>
-                <span>{typeLabel[game.player.onDeck.type]} · {speedLabel[game.player.onDeck.speed]} · {game.player.onDeck.hits.map((hit) => hitLabel[hit]).join(" + ") || "안타 없음"}</span>
-                <em>{game.player.onDeck.abilityTextKo ?? "즉시 능력 없음"}</em>
+                <span>{typeLabel[myHandSide.onDeck.type]} · {speedLabel[myHandSide.onDeck.speed]} · {myHandSide.onDeck.hits.map((hit) => hitLabel[hit]).join(" + ") || "안타 없음"}</span>
+                <em>{myHandSide.onDeck.abilityTextKo ?? "즉시 능력 없음"}</em>
               </>
             ) : <span>PH 사용 시 라인업 맨 위의 비공개 카드를 투입합니다.</span>}
           </aside>
           <div className="card-hand">
-            {game.player.hand.map((card) => (
+            {myHandSide.hand.map((card) => (
               <div className="hand-card-slot" key={card.id}>
                 <PlayerCard
                   card={card}
                   selected={game.selectedId === card.id}
-                  disabled={playbackRunning}
-                  abilityActive={abilityIsActive(card, game.player, game.cpu, game.round > 6, false)}
+                  disabled={playbackRunning || awaitingOpponentCard}
+                  abilityActive={abilityIsActive(card, myHandSide, oppHandSide, game.round > 6, mySide === "cpu")}
                   onClick={() => playRound(card.id)}
                 />
-                {(card.pinchHitter || coachGrantsPinchHit(game.playerActiveCoach)) && (
+                {(card.pinchHitter || coachGrantsPinchHit(myActiveCoach)) && (
                   <div className="pinch-hit-actions">
                     <button
                       type="button"
                       className="pinch-hit-action"
-                      disabled={playbackRunning || !game.player.onDeck}
+                      disabled={playbackRunning || awaitingOpponentCard || !myHandSide.onDeck}
                       onClick={() => playRound(card.id, "on_deck")}
                     >
-                      PH · {game.player.onDeck ? `온덱 ${game.player.onDeck.id}` : "온덱 없음"}
+                      PH · {myHandSide.onDeck ? `온덱 ${myHandSide.onDeck.id}` : "온덱 없음"}
                     </button>
                     <button
                       type="button"
                       className="pinch-hit-action is-lineup"
-                      disabled={playbackRunning || game.player.deck.length === 0}
+                      disabled={playbackRunning || awaitingOpponentCard || myHandSide.deck.length === 0}
                       onClick={() => playRound(card.id, "lineup")}
                     >
                       PH · 라인업 맨 위 비공개 카드
