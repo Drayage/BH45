@@ -13,11 +13,11 @@
 // normally `apiKey`/`projectId`/`appId`) must be set, or lib/net.ts will
 // throw a friendly "not configured yet" error instead of silently failing.
 export const FIREBASE_CONFIG = {
-  // apiKey: "REPLACE_ME",
-  // authDomain: "REPLACE_ME.firebaseapp.com",
-  // databaseURL: "https://REPLACE_ME-default-rtdb.firebaseio.com",
-  // projectId: "REPLACE_ME",
-  // storageBucket: "REPLACE_ME.appspot.com",
-  // messagingSenderId: "REPLACE_ME",
-  // appId: "REPLACE_ME",
+  apiKey: "AIzaSyByKyy7PYBIMi2K1jxH6KmzfWbE2_SsB5A",
+  authDomain: "deadline-38cdb.firebaseapp.com",
+  databaseURL: "https://deadline-38cdb-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "deadline-38cdb",
+  storageBucket: "deadline-38cdb.firebasestorage.app",
+  messagingSenderId: "768255871086",
+  appId: "1:768255871086:web:ad7713b5a3b8e01f9cbe7f",
 } as const;
